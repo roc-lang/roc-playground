@@ -1,8 +1,8 @@
 /* Design System - Roc Playground */
 :root {
-    /* === BASE DESIGN TOKENS === */
+    /* === DESIGN SYSTEM TOKENS === */
 
-    /* Site.css Colors */
+    /* Core Color Palette - Light Theme */
     --gray: #2e2e2e;
     --orange: #5c2600;
     --green: rgb(8 92 0);
@@ -10,6 +10,14 @@
     --violet: #7c38f5;
     --cyan: #004c5c;
     --magenta: #a20031;
+
+    /* Typography */
+    --font-mono:
+        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
+        "Source Code Pro", monospace;
+    --font-sans:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif;
 
     /* Spacing Scale (4px base) */
     --space-1: 4px;
@@ -56,24 +64,26 @@
     --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* === SEMANTIC COLORS === */
+    /* === SEMANTIC COLOR SYSTEM === */
 
-    /* Light Theme (Default) */
+    /* Background Colors */
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
     --bg-tertiary: #f1f5f9;
     --bg-elevated: #ffffff;
 
+    /* Text Colors */
     --text-primary: #1e293b;
     --text-secondary: #475569;
     --text-tertiary: #64748b;
     --text-muted: #94a3b8;
 
+    /* Border Colors */
     --border-subtle: #e2e8f0;
     --border-default: #cbd5e1;
     --border-strong: #94a3b8;
 
-    /* Roc Brand Colors */
+    /* Brand Colors */
     --roc-purple: #7c38f5;
     --roc-purple-light: #9b6bf2;
     --roc-purple-dark: #6528d7;
@@ -87,13 +97,12 @@
     --color-primary-active: var(--roc-purple-dark);
     --color-accent: var(--roc-cyan);
     --color-accent-hover: var(--roc-cyan-light);
-
     --color-success: var(--green);
     --color-warning: var(--orange);
     --color-error: var(--magenta);
     --color-info: var(--blue);
 
-    /* Code Syntax */
+    /* Syntax Highlighting */
     --syntax-keyword: var(--magenta);
     --syntax-string: var(--cyan);
     --syntax-number: var(--cyan);
@@ -136,7 +145,7 @@
 /* Dark Theme */
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-        /* Site.css Colors - Dark Mode */
+        /* Dark Mode Palette */
         --gray: #b3b3b3;
         --orange: #fda668;
         --green: #99d194;
@@ -184,7 +193,7 @@
 }
 
 [data-theme="light"] {
-    /* Site.css Colors - Light Mode */
+    /* Light Mode Colors */
     --gray: #2e2e2e;
     --orange: #5c2600;
     --green: rgb(8 92 0);
@@ -193,7 +202,6 @@
     --cyan: #004c5c;
     --magenta: #a20031;
 
-    /* Light Theme (Default) */
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
     --bg-tertiary: #f1f5f9;
@@ -219,7 +227,6 @@
     --color-error: var(--magenta);
     --color-info: var(--blue);
 
-    /* Code Syntax */
     --syntax-keyword: var(--magenta);
     --syntax-string: var(--cyan);
     --syntax-number: var(--cyan);
@@ -248,7 +255,7 @@
 }
 
 [data-theme="dark"] {
-    /* Site.css Colors - Dark Mode */
+    /* Dark Mode Colors */
     --gray: #6e6e6e;
     --orange: #fd6e08;
     --green: #8ecc88;
@@ -257,7 +264,6 @@
     --cyan: #72f3ea;
     --magenta: #f39bac;
 
-    /* Code Syntax */
     --syntax-keyword: var(--magenta);
     --syntax-string: var(--cyan);
     --syntax-number: var(--cyan);
@@ -321,9 +327,7 @@
 }
 
 body {
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-        sans-serif;
+    font-family: var(--font-sans);
     font-size: var(--text-base);
     line-height: var(--leading-normal);
     color: var(--text-primary);
@@ -598,9 +602,7 @@ body {
 /* === CODEMIRROR 6 STYLES === */
 .cm-editor {
     height: 100%;
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
     background-color: var(--editor-bg);
@@ -650,9 +652,7 @@ body {
 }
 
 .cm-lineNumbers {
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: calc(var(--text-sm) - 1px);
 }
 
@@ -745,7 +745,7 @@ body {
     background-color: var(--overlay-error);
 }
 
-/* === DIAGNOSTICS === */
+/* === CODEMIRROR 6 DIAGNOSTICS === */
 .cm-diagnostic-error {
     border-bottom: 2px wavy var(--color-error);
 }
@@ -821,9 +821,7 @@ body {
 /* === CODEMIRROR 5 LEGACY SUPPORT === */
 .editor .CodeMirror {
     height: 100%;
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
     border: none;
@@ -930,46 +928,6 @@ body {
 .editor .cm-error {
     color: var(--color-error);
     background-color: var(--overlay-error);
-}
-
-/* === CODEMIRROR 6 DIAGNOSTICS === */
-.cm-diagnostic-error {
-    border-bottom: 2px wavy var(--color-error);
-}
-
-.cm-diagnostic-warning {
-    border-bottom: 2px wavy var(--color-warning);
-}
-
-.cm-diagnostic-info {
-    border-bottom: 2px wavy var(--color-info);
-}
-
-/* Diagnostic gutter markers */
-.cm-lint-marker {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    margin: 2px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: bold;
-    color: white;
-}
-
-.cm-lint-marker-error {
-    background-color: var(--color-error);
-}
-
-.cm-lint-marker-warning {
-    background-color: var(--color-warning);
-}
-
-.cm-lint-marker-info {
-    background-color: var(--color-info);
 }
 
 /* === OUTPUT CONTAINER === */
@@ -1082,9 +1040,7 @@ body {
     flex: 1;
     padding: var(--space-5);
     overflow: auto;
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
     background-color: var(--bg-secondary);
@@ -1198,9 +1154,7 @@ body {
 .diagnostic-location {
     font-size: var(--text-sm);
     color: var(--text-muted);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
 }
 
 .diagnostic-message {
@@ -1215,9 +1169,7 @@ body {
     background-color: var(--bg-tertiary);
     border-radius: var(--radius-sm);
     overflow-x: auto;
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
 }
 
@@ -1290,9 +1242,7 @@ body {
     background-color: var(--bg-tertiary);
     padding: var(--space-1);
     border-radius: var(--radius-sm);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
 }
 
@@ -1309,9 +1259,7 @@ body {
 .filename {
     font-size: var(--text-sm);
     color: var(--text-muted);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     display: block;
     margin-bottom: var(--space-1);
     opacity: 0.8;
@@ -1325,9 +1273,7 @@ body {
     border: solid;
     border-color: var(--border-subtle);
     border-radius: var(--radius-sm);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-normal);
     white-space: pre-wrap;
@@ -1347,9 +1293,7 @@ body {
 /* === INLINE CODE HIGHLIGHTING === */
 .report-content .type {
     color: var(--syntax-type);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     background-color: var(--overlay-type);
@@ -1359,9 +1303,7 @@ body {
 
 .report-content .symbol-unqualified {
     color: var(--syntax-function);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     background-color: var(--overlay-function);
@@ -1420,9 +1362,7 @@ button:focus-visible,
     border: 1px solid var(--tooltip-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--tooltip-shadow);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Fira Mono",
-        "Roboto Mono", monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-normal);
     padding: var(--space-2) var(--space-3);
@@ -1476,9 +1416,7 @@ button:focus-visible,
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
-    font-family:
-        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
-        "Source Code Pro", monospace;
+    font-family: var(--font-mono);
 }
 
 .token {
