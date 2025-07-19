@@ -1,14 +1,11 @@
-/* Main stylesheet for Roc Playground */
-
 /* Design System - Roc Playground */
 :root {
     /* === BASE DESIGN TOKENS === */
 
     /* Site.css Colors */
-    --code-bg: #f4f1f8;
     --gray: #2e2e2e;
     --orange: #5c2600;
-    --green: #085c00;
+    --green: rgb(8 92 0);
     --blue: #05006d;
     --violet: #7c38f5;
     --cyan: #004c5c;
@@ -27,6 +24,7 @@
     --space-16: 64px;
 
     /* Typography Scale */
+    --text-xs: 11px;
     --text-sm: 12px;
     --text-base: 14px;
     --text-lg: 18px;
@@ -113,6 +111,7 @@
     --state-disabled: rgba(100, 116, 139, 0.5);
 
     /* Editor */
+    --editor-bg: #fafafa;
     --editor-selection: rgba(124, 56, 245, 0.15);
     --editor-cursor: var(--roc-purple);
     --editor-line-highlight: rgba(124, 56, 245, 0.03);
@@ -143,8 +142,8 @@
         --green: #99d194;
         --blue: #b8b6e2;
         --violet: #caadfb;
-        --cyan: #72f3ea;
         --magenta: #f4a4b4;
+        --cyan: #72f3ea;
 
         --bg-primary: #0f172a;
         --bg-secondary: #1e293b;
@@ -170,6 +169,7 @@
         --state-active: rgba(167, 139, 250, 0.15);
         --state-focus: rgba(167, 139, 250, 0.2);
 
+        --editor-bg: #181d34;
         --editor-selection: rgba(167, 139, 250, 0.2);
         --editor-cursor: var(--color-primary);
         --editor-line-highlight: rgba(167, 139, 250, 0.05);
@@ -185,58 +185,13 @@
 
 [data-theme="light"] {
     /* Site.css Colors - Light Mode */
-    --code-bg: #f4f1f8;
     --gray: #2e2e2e;
     --orange: #5c2600;
-    --green: #085c00;
+    --green: rgb(8 92 0);
     --blue: #05006d;
     --violet: #7c38f5;
     --cyan: #004c5c;
     --magenta: #a20031;
-
-    /* Spacing Scale (4px base) */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-8: 32px;
-    --space-10: 40px;
-    --space-12: 48px;
-    --space-16: 64px;
-
-    /* Typography Scale */
-    --text-sm: 12px;
-    --text-base: 14px;
-    --text-lg: 18px;
-
-    /* Line Heights */
-    --leading-tight: 1.3;
-    --leading-normal: 1.5;
-    --leading-relaxed: 1.6;
-
-    /* Font Weights */
-    --font-normal: 400;
-    --font-medium: 500;
-    --font-semibold: 600;
-
-    /* Border Radius */
-    --radius-sm: 3px;
-    --radius-base: 4px;
-    --radius-lg: 8px;
-
-    /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-base: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
-
-    /* Animation */
-    --duration-fast: 150ms;
-    --duration-base: 200ms;
-    --duration-slow: 300ms;
-    --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Light Theme (Default) */
     --bg-primary: #ffffff;
@@ -253,15 +208,6 @@
     --border-default: #cbd5e1;
     --border-strong: #94a3b8;
 
-    /* Roc Brand Colors */
-    --roc-purple: #7c38f5;
-    --roc-purple-light: #9b6bf2;
-    --roc-purple-dark: #6528d7;
-    --roc-cyan: #1bd6bd;
-    --roc-cyan-light: #4eefd9;
-    --roc-cyan-dark: #0ea5e9;
-
-    /* Semantic Colors */
     --color-primary: var(--roc-purple);
     --color-primary-hover: var(--roc-purple-light);
     --color-primary-active: var(--roc-purple-dark);
@@ -284,19 +230,15 @@
     --syntax-punctuation: var(--gray);
     --syntax-attribute: var(--magenta);
 
-    /* Interactive States */
     --state-hover: rgba(124, 56, 245, 0.08);
     --state-active: rgba(124, 56, 245, 0.12);
     --state-focus: rgba(124, 56, 245, 0.16);
-    --state-disabled: rgba(100, 116, 139, 0.5);
 
-    /* Editor */
-    --code-bg: #fafafa;
+    --editor-bg: #fafafa;
     --editor-selection: rgba(124, 56, 245, 0.15);
     --editor-cursor: var(--roc-purple);
     --editor-line-highlight: rgba(124, 56, 245, 0.03);
 
-    /* Overlay Colors */
     --overlay-white: rgba(255, 255, 255, 0.8);
     --overlay-error: rgba(220, 38, 38, 0.1);
     --overlay-warning: rgba(217, 119, 6, 0.1);
@@ -307,13 +249,13 @@
 
 [data-theme="dark"] {
     /* Site.css Colors - Dark Mode */
-    --gray: #b3b3b3;
-    --orange: #fda668;
-    --green: #99d194;
-    --blue: #b8b6e2;
-    --violet: #caadfb;
+    --gray: #6e6e6e;
+    --orange: #fd6e08;
+    --green: #8ecc88;
+    --blue: #b1afdf;
+    --violet: #7c38f5;
     --cyan: #72f3ea;
-    --magenta: #f4a4b4;
+    --magenta: #f39bac;
 
     /* Code Syntax */
     --syntax-keyword: var(--magenta);
@@ -350,6 +292,7 @@
     --state-active: rgba(167, 139, 250, 0.15);
     --state-focus: rgba(167, 139, 250, 0.2);
 
+    --editor-bg: #0f172a;
     --editor-selection: rgba(167, 139, 250, 0.2);
     --editor-cursor: var(--color-primary);
     --editor-line-highlight: rgba(167, 139, 250, 0.05);
@@ -650,9 +593,383 @@ body {
 .editor {
     flex: 1;
     position: relative;
-    background-color: var(--code-bg);
-    height: 0; /* Force flex item to respect container height */
-    overflow: hidden; /* Let CodeMirror handle scrolling */
+}
+
+/* === CODEMIRROR 6 STYLES === */
+.cm-editor {
+    height: 100%;
+    font-family:
+        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
+        "Source Code Pro", monospace;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    background-color: var(--editor-bg);
+    color: var(--text-primary);
+}
+
+.cm-editor.cm-focused {
+    outline: none;
+}
+
+.cm-content {
+    padding: var(--space-5);
+    caret-color: var(--editor-cursor);
+}
+
+.cm-scroller {
+    overflow: auto;
+    height: 100%;
+}
+
+.cm-line {
+    padding: 0;
+    line-height: var(--leading-relaxed);
+}
+
+.cm-cursor {
+    border-left: 1px solid var(--editor-cursor);
+}
+
+.cm-selectionBackground {
+    background: var(--editor-selection) !important;
+}
+
+.cm-activeLine {
+    background: var(--editor-line-highlight);
+}
+
+.cm-activeLineGutter {
+    background: var(--editor-line-highlight);
+}
+
+/* === GUTTERS === */
+.cm-gutters {
+    background: var(--editor-bg);
+    border-right: 1px solid var(--border-default);
+    color: var(--text-secondary);
+}
+
+.cm-lineNumbers {
+    font-family:
+        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
+        "Source Code Pro", monospace;
+    font-size: calc(var(--text-sm) - 1px);
+}
+
+.cm-lineNumbers .cm-gutterElement {
+    padding: 0 var(--space-2);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* === SEARCH === */
+.cm-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-base);
+    color: var(--text-primary);
+}
+
+.cm-searchMatch {
+    background: rgba(255, 235, 59, 0.4);
+    border: 1px solid rgba(255, 235, 59, 0.8);
+    border-radius: 2px;
+}
+
+.cm-searchMatch.cm-searchMatch-selected {
+    background: rgba(255, 193, 7, 0.6);
+    border-color: rgba(255, 193, 7, 1);
+}
+
+/* === BRACKETS === */
+.cm-matchingBracket {
+    background: rgba(34, 134, 58, 0.15);
+    border: 1px solid rgba(34, 134, 58, 0.4);
+    border-radius: 2px;
+}
+
+.cm-nonmatchingBracket {
+    background: rgba(218, 54, 51, 0.15);
+    border: 1px solid rgba(218, 54, 51, 0.4);
+    border-radius: 2px;
+}
+
+/* === SYNTAX HIGHLIGHTING === */
+.editor .cm-keyword {
+    color: var(--syntax-keyword);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-string {
+    color: var(--syntax-string);
+}
+
+.editor .cm-number {
+    color: var(--syntax-number);
+}
+
+.editor .cm-comment {
+    color: var(--syntax-comment);
+    font-style: italic;
+}
+
+.editor .cm-operator {
+    color: var(--syntax-operator);
+}
+
+.editor .cm-punctuation {
+    color: var(--syntax-punctuation);
+}
+
+.editor .cm-builtin {
+    color: var(--syntax-type);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-type {
+    color: var(--syntax-type);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-constant {
+    color: var(--syntax-number);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-variable {
+    color: var(--syntax-function);
+}
+
+.editor .cm-error {
+    color: var(--color-error);
+    background-color: var(--overlay-error);
+}
+
+/* === DIAGNOSTICS === */
+.cm-diagnostic-error {
+    border-bottom: 2px wavy var(--color-error);
+}
+
+.cm-diagnostic-warning {
+    border-bottom: 2px wavy var(--color-warning);
+}
+
+.cm-diagnostic-info {
+    border-bottom: 2px wavy var(--color-info);
+}
+
+/* Diagnostic gutter markers */
+.cm-lint-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin: 2px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+}
+
+.cm-lint-marker-error {
+    background-color: var(--color-error);
+}
+
+.cm-lint-marker-warning {
+    background-color: var(--color-warning);
+}
+
+.cm-lint-marker-info {
+    background-color: var(--color-info);
+}
+
+/* === SOURCE RANGE HIGHLIGHTING === */
+.cm-source-range-highlight {
+    background-color: rgba(124, 58, 237, 0.2);
+    border-radius: 2px;
+    outline: 2px solid rgba(124, 58, 237, 0.4);
+    outline-offset: -1px;
+}
+
+[data-theme="dark"] .cm-source-range-highlight {
+    background-color: rgba(139, 92, 246, 0.3);
+    outline-color: rgba(139, 92, 246, 0.5);
+}
+
+/* Enhanced selection visibility when highlighting source ranges */
+.cm-source-range-active .cm-selectionBackground {
+    background-color: rgba(124, 58, 237, 0.4) !important;
+}
+
+.cm-source-range-active .cm-focused .cm-selectionBackground {
+    background-color: rgba(124, 58, 237, 0.5) !important;
+}
+
+[data-theme="dark"] .cm-source-range-active .cm-selectionBackground {
+    background-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+[data-theme="dark"]
+    .cm-source-range-active
+    .cm-focused
+    .cm-selectionBackground {
+    background-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+/* === CODEMIRROR 5 LEGACY SUPPORT === */
+.editor .CodeMirror {
+    height: 100%;
+    font-family:
+        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
+        "Source Code Pro", monospace;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    border: none;
+    outline: none;
+    background-color: var(--editor-bg);
+    color: var(--text-primary);
+}
+
+.editor .CodeMirror-focused {
+    background-color: var(--editor-line-highlight);
+}
+
+.editor .CodeMirror-cursor {
+    border-left: 1px solid var(--editor-cursor);
+}
+
+.editor .CodeMirror-selected {
+    background-color: var(--editor-selection);
+}
+
+.editor .CodeMirror-line::selection,
+.editor .CodeMirror-line > span::selection,
+.editor .CodeMirror-line > span > span::selection {
+    background-color: var(--editor-selection);
+}
+
+.editor .CodeMirror-gutters {
+    background-color: var(--editor-bg);
+    border-right: 1px solid var(--border-default);
+}
+
+.editor .CodeMirror-linenumber {
+    color: var(--text-secondary);
+    padding: 0 var(--space-2);
+}
+
+.editor .CodeMirror-activeline-background {
+    background-color: var(--editor-line-highlight);
+}
+
+.editor .CodeMirror-matchingbracket {
+    color: var(--text-primary);
+    background-color: var(--editor-selection);
+    font-weight: bold;
+}
+
+.editor .CodeMirror-nonmatchingbracket {
+    color: var(--color-error);
+    background-color: var(--editor-selection);
+}
+
+/* Roc Syntax Highlighting */
+.editor .cm-keyword {
+    color: var(--syntax-keyword);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-string {
+    color: var(--syntax-string);
+}
+
+.editor .cm-string-interpolation {
+    color: var(--syntax-function);
+    font-weight: var(--font-medium);
+    background-color: var(--overlay-function);
+}
+
+.editor .cm-number {
+    color: var(--syntax-number);
+}
+
+.editor .cm-comment {
+    color: var(--syntax-comment);
+    font-style: italic;
+}
+
+.editor .cm-operator {
+    color: var(--syntax-operator);
+}
+
+.editor .cm-punctuation {
+    color: var(--syntax-punctuation);
+}
+
+.editor .cm-builtin {
+    color: var(--syntax-type);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-type {
+    color: var(--syntax-type);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-constant {
+    color: var(--syntax-number);
+    font-weight: var(--font-medium);
+}
+
+.editor .cm-variable {
+    color: var(--syntax-function);
+}
+
+.editor .cm-error {
+    color: var(--color-error);
+    background-color: var(--overlay-error);
+}
+
+/* === CODEMIRROR 6 DIAGNOSTICS === */
+.cm-diagnostic-error {
+    border-bottom: 2px wavy var(--color-error);
+}
+
+.cm-diagnostic-warning {
+    border-bottom: 2px wavy var(--color-warning);
+}
+
+.cm-diagnostic-info {
+    border-bottom: 2px wavy var(--color-info);
+}
+
+/* Diagnostic gutter markers */
+.cm-lint-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin: 2px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+}
+
+.cm-lint-marker-error {
+    background-color: var(--color-error);
+}
+
+.cm-lint-marker-warning {
+    background-color: var(--color-warning);
+}
+
+.cm-lint-marker-info {
+    background-color: var(--color-info);
 }
 
 /* === OUTPUT CONTAINER === */
@@ -837,11 +1154,6 @@ body {
 
 .success-message {
     color: var(--text-muted);
-    /* background-color: rgba(5, 150, 105, 0.1); */
-    /* padding: var(--space-4); */
-    /* border-radius: var(--radius-base); */
-    /* border-left: 3px solid var(--color-success); */
-    /* margin-bottom: var(--space-4); */
 }
 
 /* === DIAGNOSTICS === */
@@ -940,7 +1252,6 @@ body {
 .report {
     margin-bottom: var(--space-3);
     padding: var(--space-3) var(--space-4) var(--space-3) 0;
-    /* border-radius: var(--radius-sm); */
     border-top: 2px solid;
 }
 
@@ -1026,11 +1337,11 @@ body {
 }
 
 .source-region pre.error {
-    background: var(--code-bg);
+    background: var(--editor-bg);
 }
 
 .source-region pre.dim {
-    background: var(--code-bg);
+    background: var(--editor-bg);
 }
 
 /* === INLINE CODE HIGHLIGHTING === */
@@ -1137,97 +1448,180 @@ button:focus-visible,
     display: block;
 }
 
-/* === TOKEN DISPLAY === */
+/* CodeMirror 6 tooltip positioning */
+.cm-tooltip {
+    background: var(--tooltip-bg);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--tooltip-shadow);
+}
+
+.cm-tooltip.cm-tooltip-above .cm-tooltip-arrow:before {
+    border-top-color: var(--tooltip-border);
+}
+
+.cm-tooltip.cm-tooltip-above .cm-tooltip-arrow:after {
+    border-top-color: var(--tooltip-bg);
+}
+
+.cm-tooltip.cm-tooltip-below .cm-tooltip-arrow:before {
+    border-bottom-color: var(--tooltip-border);
+}
+
+.cm-tooltip.cm-tooltip-below .cm-tooltip-arrow:after {
+    border-bottom-color: var(--tooltip-bg);
+}
+
 .token-list {
-    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
-    border-radius: var(--radius-base);
-    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-family:
+        "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Droid Sans Mono",
+        "Source Code Pro", monospace;
 }
 
 .token {
-    display: inline-block;
-    margin: 2px 4px;
-    font-size: var(--text-sm);
-    white-space: nowrap;
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
 }
 
 .token-type {
-    font-weight: var(--font-medium);
-    margin-right: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
 }
 
 .token-position {
-    color: var(--text-secondary);
-    font-size: calc(var(--text-sm) - 1px);
-    margin-left: var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
 }
 
-/* Token type colors */
+/* Token type styling */
 .token.keyword .token-type {
     color: var(--syntax-keyword);
 }
-
 .token.identifier .token-type {
     color: var(--syntax-function);
 }
-
 .token.operator .token-type {
     color: var(--syntax-operator);
 }
-
 .token.string .token-type {
     color: var(--syntax-string);
 }
-
 .token.number .token-type {
     color: var(--syntax-number);
 }
-
 .token.punctuation .token-type {
     color: var(--syntax-punctuation);
 }
-
 .token.comment .token-type {
     color: var(--syntax-comment);
 }
-
 .token.eof .token-type {
-    color: var(--text-tertiary);
+    color: var(--text-muted);
 }
 
-/* === SOURCE RANGE INTERACTIVE ELEMENTS === */
 .source-range {
     display: inline-block;
-    padding: 1px 2px;
-    margin: 0 0px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-subtle);
+    background: var(--state-hover);
     border-radius: var(--radius-sm);
-    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
-    font-size: calc(var(--text-sm) - 1px);
-    color: var(--text-secondary);
     cursor: pointer;
+    padding: 1px 3px;
+    margin: 0 1px;
     transition: all var(--duration-fast) var(--ease-out);
-    user-select: none;
+    text-decoration: none;
+    color: inherit;
 }
 
 .source-range:hover {
-    background-color: var(--color-accent);
-    color: var(--bg-primary);
-    border-color: var(--color-accent);
+    background: var(--state-active);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
 }
 
 .source-range:active {
     transform: translateY(0);
-    box-shadow: none;
 }
 
 .source-range.highlighted {
-    background-color: var(--color-primary);
-    color: var(--bg-primary);
-    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .cm-editor {
+        font-size: 13px;
+    }
+
+    .cm-content {
+        padding: var(--space-3);
+    }
+
+    .cm-lineNumbers .cm-gutterElement {
+        padding: 0 6px;
+        min-width: 35px;
+    }
+
+    .cm-tooltip,
+    .cm-tooltip-type-hint,
+    .cm-tooltip-hover,
+    .cm-tooltip-diagnostic {
+        max-width: 280px;
+        font-size: 12px;
+        padding: var(--space-2);
+    }
+
+    .type-hint-word {
+        font-size: var(--text-sm);
+    }
+
+    .main-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .examples-footer {
+        position: static;
+        order: -1;
+    }
+}
+
+/* === ACCESSIBILITY === */
+@media (prefers-reduced-motion: reduce) {
+    .cm-cursor {
+        animation: none;
+    }
+
+    .cm-tooltip-type-hint {
+        animation: none;
+    }
+
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .cm-editor {
+        border: 2px solid;
+    }
+
+    .cm-activeLine {
+        background: transparent;
+        border-left: 3px solid var(--editor-cursor);
+    }
+
+    .cm-tooltip,
+    .cm-tooltip-type-hint,
+    .cm-tooltip-hover,
+    .cm-tooltip-diagnostic {
+        border-width: 2px;
+        box-shadow: none;
+    }
 }

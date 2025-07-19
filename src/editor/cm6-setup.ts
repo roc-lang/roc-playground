@@ -1,5 +1,5 @@
 import { EditorView, basicSetup } from "codemirror";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Compartment } from "@codemirror/state";
 import { hoverTooltip, keymap } from "@codemirror/view";
 import { search, openSearchPanel } from "@codemirror/search";
 import {
@@ -17,6 +17,9 @@ import {
   updateEditorDiagnostics,
   RocDiagnostic,
 } from "./diagnostics";
+
+// Theme compartment for dynamic theme switching
+const themeCompartment = new Compartment();
 
 interface EditorViewOptions {
   doc?: string;
@@ -86,10 +89,8 @@ export function createEditorView(
     }),
   ];
 
-  // Add theme
-  if (options.theme === "dark") {
-    extensions.push(oneDark);
-  }
+  // Add theme using compartment for dynamic switching
+  extensions.push(themeCompartment.of(options.theme === "dark" ? oneDark : []));
 
   // Add hover tooltip if provided
   if (options.hoverTooltip) {
@@ -147,6 +148,18 @@ export function updateDiagnosticsInView(
   diagnostics: RocDiagnostic[],
 ): void {
   updateEditorDiagnostics(view, diagnostics);
+}
+
+/**
+ * Updates the theme of an existing editor view
+ */
+export function updateEditorTheme(
+  view: EditorView,
+  theme: "light" | "dark",
+): void {
+  view.dispatch({
+    effects: themeCompartment.reconfigure(theme === "dark" ? oneDark : []),
+  });
 }
 
 // Export the search function for compatibility

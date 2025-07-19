@@ -3,14 +3,13 @@ import {
   setDocumentContent,
   getDocumentContent,
   updateDiagnosticsInView,
+  updateEditorTheme,
 } from "./editor/cm6-setup";
 import { EditorView } from "@codemirror/view";
 import { createTypeHintTooltip } from "./editor/type-hints";
 import { initializeWasm } from "./wasm/roc-wasm";
 import { debugLog, initializeDebug } from "./utils/debug";
-import "./styles/main.css";
-import "./styles/editor.css";
-import "./styles/tooltips.css";
+import "./styles/styles.css";
 
 // Interfaces
 import { examples } from "./examples";
@@ -738,11 +737,14 @@ class RocPlayground {
       .matchMedia("(prefers-color-scheme: dark)")
       .addEventListener("change", (e) => {
         if (!localStorage.getItem("theme")) {
-          document.documentElement.setAttribute(
-            "data-theme",
-            e.matches ? "dark" : "light",
-          );
+          const newTheme = e.matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", newTheme);
           this.updateThemeLabel();
+
+          // Update editor theme
+          if (codeMirrorEditor) {
+            updateEditorTheme(codeMirrorEditor, newTheme);
+          }
         }
       });
   }
@@ -754,6 +756,11 @@ class RocPlayground {
     document.documentElement.setAttribute("data-theme", newTheme);
     localStorage.setItem("theme", newTheme);
     this.updateThemeLabel();
+
+    // Update editor theme
+    if (codeMirrorEditor) {
+      updateEditorTheme(codeMirrorEditor, newTheme);
+    }
   }
 
   updateThemeLabel(): void {
