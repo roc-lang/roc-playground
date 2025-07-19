@@ -192,7 +192,7 @@ class RocPlayground {
     }
 
     try {
-      this.compileStartTime = Date.now();
+      this.compileStartTime = performance.now();
       this.setStatus("Compiling...");
 
       // Add compilation timeout protection
@@ -206,7 +206,7 @@ class RocPlayground {
 
       const result = await Promise.race([compilationPromise, timeoutPromise]);
 
-      lastCompileTime = Date.now() - this.compileStartTime;
+      lastCompileTime = performance.now() - this.compileStartTime;
 
       if (result.status === "SUCCESS") {
         // Parse diagnostics from the result
@@ -584,7 +584,7 @@ class RocPlayground {
       if (lastCompileTime !== null) {
         let timeText;
         if (lastCompileTime < 1000) {
-          timeText = `${Math.round(lastCompileTime)}ms`;
+          timeText = `${lastCompileTime.toFixed(1)}ms`;
         } else {
           timeText = `${(lastCompileTime / 1000).toFixed(1)}s`;
         }
