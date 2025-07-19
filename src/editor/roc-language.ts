@@ -13,6 +13,13 @@ interface StreamState {
   inString?: boolean;
   stringQuote?: string;
   interpolationDepth?: number;
+  braceDepth?: number;
+  parenDepth?: number;
+  bracketDepth?: number;
+  lastToken?: string;
+  expectingValue?: boolean;
+  inComment?: boolean;
+  errorRecovery?: boolean;
 }
 
 // Define the highlight style that maps token types to CSS classes
@@ -37,46 +44,103 @@ export function rocStreamLanguage(): LanguageSupport {
     name: "roc",
 
     startState(): StreamState {
-      return {};
+      return {
+        braceDepth: 0,
+        parenDepth: 0,
+        bracketDepth: 0,
+        interpolationDepth: 0,
+        expectingValue: false,
+        inComment: false,
+        errorRecovery: false,
+      };
     },
 
-    token(stream: StringStream, _state: StreamState): string | null {
+    token(stream: StringStream, state: StreamState): string | null {
       // Skip whitespace
       if (stream.eatSpace()) return null;
 
       const ch = stream.next();
       if (!ch) return null;
 
+      // Error recovery: if we're in error recovery mode, try to find a safe point
+      if (state.errorRecovery) {
+        // Look for statement boundaries or safe tokens
+        if (ch === "\n" || ch === ";" || ch === "}" || ch === ")") {
+          state.errorRecovery = false;
+          if (ch === "}")
+            state.braceDepth = Math.max(0, (state.braceDepth || 0) - 1);
+          if (ch === ")")
+            state.parenDepth = Math.max(0, (state.parenDepth || 0) - 1);
+          return "punctuation";
+        }
+        // Continue consuming tokens in error recovery
+        stream.next();
+        return "error";
+      }
+
       // Comments
       if (ch === "#") {
+        state.inComment = true;
         stream.skipToEnd();
+        state.inComment = false;
         return "comment";
       }
 
-      // Strings
-      if (ch === '"' || ch === "'") {
+      // Strings with better error recovery
+      if (ch === '"') {
         const quote = ch;
         let escaped = false;
         let next: string | void;
+        let foundEnd = false;
 
         while ((next = stream.next()) !== undefined) {
           if (next === quote && !escaped) {
-            return "string";
+            foundEnd = true;
+            break;
           }
 
-          // String interpolation
+          // String interpolation with error recovery
           if (next === "$" && stream.peek() === "{" && !escaped) {
             stream.next(); // consume {
             let depth = 1;
+            let interpolationComplete = false;
+
             while (depth > 0 && (next = stream.next()) !== undefined) {
               if (next === "{") depth++;
-              if (next === "}") depth--;
+              if (next === "}") {
+                depth--;
+                if (depth === 0) interpolationComplete = true;
+              }
+              // Break on newline to prevent runaway parsing
+              if (next === "\n" && depth > 0) {
+                state.errorRecovery = true;
+                break;
+              }
             }
-            return "string-interpolation";
+
+            if (!interpolationComplete) {
+              state.errorRecovery = true;
+              return "error";
+            }
           }
 
           escaped = !escaped && next === "\\";
+
+          // Prevent runaway string parsing
+          if (next === "\n") {
+            // Single quotes don't typically span lines
+            stream.backUp(1);
+            state.errorRecovery = true;
+            return "error";
+          }
         }
+
+        if (!foundEnd) {
+          // Unterminated string
+          state.errorRecovery = true;
+          return "error";
+        }
+
         return "string";
       }
 
@@ -133,22 +197,57 @@ export function rocStreamLanguage(): LanguageSupport {
         return "operator";
       }
 
-      // Punctuation
-      if ("=,;.:[]{}()".indexOf(ch) !== -1) {
+      // Punctuation with bracket tracking for error recovery
+      if ("=,;.:".indexOf(ch) !== -1) {
         return "punctuation";
       }
 
-      // Identifiers and keywords
+      // Track bracket depth for error recovery
+      if (ch === "{") {
+        state.braceDepth = (state.braceDepth || 0) + 1;
+        return "punctuation";
+      }
+      if (ch === "}") {
+        state.braceDepth = Math.max(0, (state.braceDepth || 0) - 1);
+        return "punctuation";
+      }
+      if (ch === "(") {
+        state.parenDepth = (state.parenDepth || 0) + 1;
+        return "punctuation";
+      }
+      if (ch === ")") {
+        state.parenDepth = Math.max(0, (state.parenDepth || 0) - 1);
+        return "punctuation";
+      }
+      if (ch === "[") {
+        state.bracketDepth = (state.bracketDepth || 0) + 1;
+        return "punctuation";
+      }
+      if (ch === "]") {
+        state.bracketDepth = Math.max(0, (state.bracketDepth || 0) - 1);
+        return "punctuation";
+      }
+
+      // Identifiers and keywords with better error recovery
       if (/[a-zA-Z_]/.test(ch)) {
         stream.eatWhile(/[\w]/);
 
         // Check for trailing underscore or bang suffix (but not both)
         const nextChar = stream.peek();
         if (nextChar === "!" || nextChar === "_") {
-          stream.next();
+          // Only consume if it's a valid suffix pattern
+          if (stream.current().length > 1 || nextChar === "_") {
+            stream.next();
+          }
         }
 
         const word = stream.current();
+
+        // Validate identifier format - catch malformed identifiers
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*[!_]?$/.test(word)) {
+          state.errorRecovery = true;
+          return "error";
+        }
 
         // Handle special case of lone underscore (wildcard pattern)
         if (word === "_") {
@@ -178,9 +277,11 @@ export function rocStreamLanguage(): LanguageSupport {
           "return",
           "for",
           "in",
+          "where",
         ];
 
         if (keywords.includes(baseWord)) {
+          state.lastToken = "keyword";
           return "keyword";
         }
 
@@ -225,15 +326,21 @@ export function rocStreamLanguage(): LanguageSupport {
           return "type";
         }
 
+        state.lastToken = "variable";
         return "variable";
       }
 
-      return null;
+      // If we get here, we have an unexpected character
+      // Enter error recovery mode
+      state.errorRecovery = true;
+      return "error";
     },
 
     languageData: {
       commentTokens: { line: "#" },
       indentOnInput: /^\s*[\}\]\)]$/,
+      closeBrackets: { brackets: ["(", "[", "{", "'", '"'] },
+      wordChars: "_!",
     },
 
     tokenTable: {

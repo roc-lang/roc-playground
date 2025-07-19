@@ -1,5 +1,5 @@
 import {
-  createEditorView,
+  createFullEditor,
   setDocumentContent,
   getDocumentContent,
   updateDiagnosticsInView,
@@ -144,27 +144,45 @@ class RocPlayground {
     const themeAttr = document.documentElement.getAttribute("data-theme");
     const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
 
-    codeMirrorEditor = createEditorView(editorContainer, {
-      doc: "# Select an example or write Roc code here...",
+    codeMirrorEditor = createFullEditor(editorContainer, {
+      content: "# Select an example or write Roc code here...",
       theme: theme,
-      hoverTooltip: createTypeHintTooltip(wasmInterface),
+      onHover: createTypeHintTooltip(wasmInterface),
       onChange: (content: string) => {
         this.handleCodeChange(content);
       },
+      diagnostics: lastDiagnostics,
     });
 
     debugLog("Editor setup complete");
   }
 
   handleCodeChange(content: string): void {
-    // Auto-compile with debouncing
+    // Auto-compile with debouncing and validation
     if (this.compileTimeout) {
       clearTimeout(this.compileTimeout);
     }
 
     this.compileTimeout = setTimeout(() => {
-      this.compileCode(content);
-    }, 500);
+      this.compileCodeWithRecovery(content);
+    }, 50);
+  }
+
+  /**
+   * Compile code with better error recovery
+   */
+  async compileCodeWithRecovery(content: string): Promise<void> {
+    try {
+      await this.compileCode(content);
+    } catch (error) {
+      console.warn("Compilation failed, attempting recovery:", error);
+
+      // Update UI to show compilation failed
+      this.setStatus("❌ Compilation failed");
+      this.showError(
+        `Compilation error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   }
 
   async compileCode(code?: string, skipViewUpdate?: boolean): Promise<void> {
@@ -177,9 +195,16 @@ class RocPlayground {
       this.compileStartTime = Date.now();
       this.setStatus("Compiling...");
 
-      const result = await wasmInterface.compile(
+      // Add compilation timeout protection
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Compilation timeout")), 10000);
+      });
+
+      const compilationPromise = wasmInterface.compile(
         code || getDocumentContent(codeMirrorEditor),
       );
+
+      const result = await Promise.race([compilationPromise, timeoutPromise]);
 
       lastCompileTime = Date.now() - this.compileStartTime;
 
@@ -264,7 +289,7 @@ class RocPlayground {
 
     activeExample = index;
     const exampleItems = document.querySelectorAll(".example-item");
-    exampleItems[index]?.classList.add("active");
+    // exampleItems[index]?.classList.add("active");
 
     // Set editor content
     setDocumentContent(codeMirrorEditor, example.code);

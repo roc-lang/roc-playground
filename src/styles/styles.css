@@ -1619,7 +1619,6 @@ button:focus-visible,
 .token {
     display: flex;
     justify-content: space-between;
-    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
 }
 
@@ -1669,6 +1668,7 @@ button:focus-visible,
     transition: all var(--duration-fast) var(--ease-out);
     text-decoration: none;
     color: inherit;
+    font-size: var(--text-xs);
 }
 
 .source-range:hover {

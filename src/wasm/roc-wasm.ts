@@ -5,6 +5,7 @@
 
 import { debuglog } from "util";
 import { debugLog } from "../utils/debug";
+import wasmUrl from "../assets/playground.wasm";
 
 interface WasmMessage {
   type: string;
@@ -71,7 +72,7 @@ export async function initializeWasm(): Promise<{
     debugLog("Initializing WASM module...");
 
     // Load the WASM file
-    const response = await fetch("playground.wasm");
+    const response = await fetch(wasmUrl);
 
     if (!response.ok) {
       throw new Error(
