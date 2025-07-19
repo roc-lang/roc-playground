@@ -83,6 +83,9 @@ class RocPlayground {
       // Initialize WASM first
       await this.initializeWasm();
 
+      // Initialize theme before editor setup
+      this.initTheme();
+
       // Setup editor
       this.setupEditor();
 
@@ -91,7 +94,6 @@ class RocPlayground {
       this.setupAutoCompile();
       this.setupUrlSharing();
       this.setupResizeHandle();
-      this.initTheme();
 
       // Restore from URL if present
       await this.restoreFromHash();
