@@ -274,6 +274,7 @@ async function sendMessageDirect(message: WasmMessage): Promise<WasmResponse> {
   let messagePtr: number | null = null;
   let responsePtr: number | null = null;
   let messageBytes: Uint8Array | null = null;
+  const responseBufferSize = 256 * 1024; // 256KB buffer
 
   try {
     const messageStr = JSON.stringify(message);
@@ -295,7 +296,6 @@ async function sendMessageDirect(message: WasmMessage): Promise<WasmResponse> {
     memory.set(messageBytes, messagePtr);
 
     // Allocate memory for response
-    const responseBufferSize = 64 * 1024; // 64KB buffer
     responsePtr = wasmModule.allocate(responseBufferSize);
     if (!responsePtr) {
       throw new Error("Failed to allocate response memory");
@@ -370,7 +370,7 @@ async function sendMessageDirect(message: WasmMessage): Promise<WasmResponse> {
       wasmModule.deallocate(messagePtr, messageBytes.length);
     }
     if (responsePtr && wasmModule.deallocate) {
-      wasmModule.deallocate(responsePtr, 64 * 1024);
+      wasmModule.deallocate(responsePtr, responseBufferSize);
     }
   }
 }
