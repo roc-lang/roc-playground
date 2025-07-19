@@ -2,14 +2,75 @@
 :root {
     /* === DESIGN SYSTEM TOKENS === */
 
-    /* Core Color Palette - Light Theme */
-    --gray: #2e2e2e;
-    --orange: #5c2600;
-    --green: rgb(8 92 0);
-    --blue: #05006d;
-    --violet: #7c38f5;
-    --cyan: #004c5c;
-    --magenta: #a20031;
+    /* === BASE COLOR PALETTE === */
+    /* Light Theme Colors */
+    --gray-light: #2e2e2e;
+    --orange-light: #5c2600;
+    --green-light: rgb(8 92 0);
+    --blue-light: #05006d;
+    --violet-light: #7c38f5;
+    --cyan-light: #004c5c;
+    --magenta-light: #a20031;
+
+    /* Dark Theme Colors */
+    --gray-dark: #b3b3b3;
+    --orange-dark: #fda668;
+    --green-dark: #99d194;
+    --blue-dark: #b8b6e2;
+    --violet-dark: #caadfb;
+    --cyan-dark: #72f3ea;
+    --magenta-dark: #f4a4b4;
+
+    /* Dark Theme Alt Colors (for manual dark theme) */
+    --gray-dark-alt: #6e6e6e;
+    --orange-dark-alt: #fd6e08;
+    --green-dark-alt: #8ecc88;
+    --blue-dark-alt: #b1afdf;
+    --magenta-dark-alt: #f39bac;
+
+    /* === ACTIVE COLOR THEME === */
+    /* Default to light theme */
+    --gray: var(--gray-light);
+    --orange: var(--orange-light);
+    --green: var(--green-light);
+    --blue: var(--blue-light);
+    --violet: var(--violet-light);
+    --cyan: var(--cyan-light);
+    --magenta: var(--magenta-light);
+
+    /* === BASE INTERACTION & OVERLAY VALUES === */
+    /* Light Theme Base Values */
+    --primary-alpha-8: rgba(124, 56, 245, 0.08);
+    --primary-alpha-12: rgba(124, 56, 245, 0.12);
+    --primary-alpha-15: rgba(124, 56, 245, 0.15);
+    --primary-alpha-16: rgba(124, 56, 245, 0.16);
+    --primary-alpha-03: rgba(124, 56, 245, 0.03);
+    --primary-alpha-20: rgba(124, 56, 245, 0.2);
+    --primary-alpha-40: rgba(124, 58, 237, 0.4);
+    --primary-alpha-50: rgba(124, 58, 237, 0.5);
+
+    /* Dark Theme Base Values */
+    --primary-dark-alpha-05: rgba(167, 139, 250, 0.05);
+    --primary-dark-alpha-10: rgba(167, 139, 250, 0.1);
+    --primary-dark-alpha-15: rgba(167, 139, 250, 0.15);
+    --primary-dark-alpha-20: rgba(167, 139, 250, 0.2);
+    --primary-dark-alpha-40: rgba(139, 92, 246, 0.4);
+    --primary-dark-alpha-50: rgba(139, 92, 246, 0.5);
+    --primary-dark-alpha-30: rgba(139, 92, 246, 0.3);
+
+    /* Base Overlay Colors */
+    --white-alpha-80: rgba(255, 255, 255, 0.8);
+    --white-alpha-90: rgba(255, 255, 255, 0.9);
+    --error-light-alpha: rgba(220, 38, 38, 0.1);
+    --error-dark-alpha: rgba(239, 68, 68, 0.15);
+    --warning-light-alpha: rgba(217, 119, 6, 0.1);
+    --warning-dark-alpha: rgba(245, 158, 11, 0.15);
+    --info-light-alpha: rgba(2, 132, 199, 0.1);
+    --info-dark-alpha: rgba(59, 130, 246, 0.15);
+    --type-light-alpha: rgba(219, 39, 119, 0.1);
+    --type-dark-alpha: rgba(244, 114, 182, 0.15);
+    --function-light-alpha: rgba(124, 58, 237, 0.1);
+    --function-dark-alpha: rgba(196, 181, 253, 0.15);
 
     /* Typography */
     --font-mono:
@@ -114,24 +175,24 @@
     --syntax-attribute: var(--magenta);
 
     /* Interactive States */
-    --state-hover: rgba(124, 56, 245, 0.08);
-    --state-active: rgba(124, 56, 245, 0.12);
-    --state-focus: rgba(124, 56, 245, 0.16);
+    --state-hover: var(--primary-alpha-8);
+    --state-active: var(--primary-alpha-12);
+    --state-focus: var(--primary-alpha-16);
     --state-disabled: rgba(100, 116, 139, 0.5);
 
     /* Editor */
     --editor-bg: #fafafa;
-    --editor-selection: rgba(124, 56, 245, 0.15);
+    --editor-selection: var(--primary-alpha-15);
     --editor-cursor: var(--roc-purple);
-    --editor-line-highlight: rgba(124, 56, 245, 0.03);
+    --editor-line-highlight: var(--primary-alpha-03);
 
     /* Overlay Colors */
-    --overlay-white: rgba(255, 255, 255, 0.8);
-    --overlay-error: rgba(220, 38, 38, 0.1);
-    --overlay-warning: rgba(217, 119, 6, 0.1);
-    --overlay-info: rgba(2, 132, 199, 0.1);
-    --overlay-type: rgba(219, 39, 119, 0.1);
-    --overlay-function: rgba(124, 58, 237, 0.1);
+    --overlay-white: var(--white-alpha-80);
+    --overlay-error: var(--error-light-alpha);
+    --overlay-warning: var(--warning-light-alpha);
+    --overlay-info: var(--info-light-alpha);
+    --overlay-type: var(--type-light-alpha);
+    --overlay-function: var(--function-light-alpha);
 
     /* Search & Highlighting Colors */
     --search-match-bg: rgba(255, 235, 59, 0.4);
@@ -146,10 +207,10 @@
     --bracket-mismatch-border: rgba(218, 54, 51, 0.4);
 
     /* Source Range Colors */
-    --source-range-bg: rgba(124, 58, 237, 0.2);
-    --source-range-border: rgba(124, 58, 237, 0.4);
-    --source-range-selection: rgba(124, 58, 237, 0.4);
-    --source-range-selection-focused: rgba(124, 58, 237, 0.5);
+    --source-range-bg: var(--primary-alpha-20);
+    --source-range-border: var(--primary-alpha-40);
+    --source-range-selection: var(--primary-alpha-40);
+    --source-range-selection-focused: var(--primary-alpha-50);
 
     /* Tooltip Colors */
     --tooltip-bg: var(--bg-elevated);
@@ -164,13 +225,13 @@
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
         /* Dark Mode Palette */
-        --gray: #b3b3b3;
-        --orange: #fda668;
-        --green: #99d194;
-        --blue: #b8b6e2;
-        --violet: #caadfb;
-        --magenta: #f4a4b4;
-        --cyan: #72f3ea;
+        --gray: var(--gray-dark);
+        --orange: var(--orange-dark);
+        --green: var(--green-dark);
+        --blue: var(--blue-dark);
+        --violet: var(--violet-dark);
+        --magenta: var(--magenta-dark);
+        --cyan: var(--cyan-dark);
 
         --bg-primary: #0f172a;
         --bg-secondary: #1e293b;
@@ -192,21 +253,21 @@
         --color-accent: #22d3ee;
         --color-accent-hover: #67e8f9;
 
-        --state-hover: rgba(167, 139, 250, 0.1);
-        --state-active: rgba(167, 139, 250, 0.15);
-        --state-focus: rgba(167, 139, 250, 0.2);
+        --state-hover: var(--primary-dark-alpha-10);
+        --state-active: var(--primary-dark-alpha-15);
+        --state-focus: var(--primary-dark-alpha-20);
 
         --editor-bg: #181d34;
-        --editor-selection: rgba(167, 139, 250, 0.2);
+        --editor-selection: var(--primary-dark-alpha-20);
         --editor-cursor: var(--color-primary);
-        --editor-line-highlight: rgba(167, 139, 250, 0.05);
+        --editor-line-highlight: var(--primary-dark-alpha-05);
 
-        --overlay-white: rgba(255, 255, 255, 0.9);
-        --overlay-error: rgba(239, 68, 68, 0.15);
-        --overlay-warning: rgba(245, 158, 11, 0.15);
-        --overlay-info: rgba(59, 130, 246, 0.15);
-        --overlay-type: rgba(244, 114, 182, 0.15);
-        --overlay-function: rgba(196, 181, 253, 0.15);
+        --overlay-white: var(--white-alpha-90);
+        --overlay-error: var(--error-dark-alpha);
+        --overlay-warning: var(--warning-dark-alpha);
+        --overlay-info: var(--info-dark-alpha);
+        --overlay-type: var(--type-dark-alpha);
+        --overlay-function: var(--function-dark-alpha);
 
         /* Search & Highlighting - Dark Mode */
         --search-match-bg: rgba(255, 235, 59, 0.3);
@@ -221,22 +282,22 @@
         --bracket-mismatch-border: rgba(248, 81, 73, 0.5);
 
         /* Source Range - Dark Mode */
-        --source-range-bg: rgba(139, 92, 246, 0.3);
-        --source-range-border: rgba(139, 92, 246, 0.5);
-        --source-range-selection: rgba(139, 92, 246, 0.4);
-        --source-range-selection-focused: rgba(139, 92, 246, 0.5);
+        --source-range-bg: var(--primary-dark-alpha-30);
+        --source-range-border: var(--primary-dark-alpha-50);
+        --source-range-selection: var(--primary-dark-alpha-40);
+        --source-range-selection-focused: var(--primary-dark-alpha-50);
     }
 }
 
 [data-theme="light"] {
     /* Light Mode Colors */
-    --gray: #2e2e2e;
-    --orange: #5c2600;
-    --green: rgb(8 92 0);
-    --blue: #05006d;
-    --violet: #7c38f5;
-    --cyan: #004c5c;
-    --magenta: #a20031;
+    --gray: var(--gray-light);
+    --orange: var(--orange-light);
+    --green: var(--green-light);
+    --blue: var(--blue-light);
+    --violet: var(--violet-light);
+    --cyan: var(--cyan-light);
+    --magenta: var(--magenta-light);
 
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
@@ -273,21 +334,21 @@
     --syntax-punctuation: var(--gray);
     --syntax-attribute: var(--magenta);
 
-    --state-hover: rgba(124, 56, 245, 0.08);
-    --state-active: rgba(124, 56, 245, 0.12);
-    --state-focus: rgba(124, 56, 245, 0.16);
+    --state-hover: var(--primary-alpha-8);
+    --state-active: var(--primary-alpha-12);
+    --state-focus: var(--primary-alpha-16);
 
     --editor-bg: #fafafa;
-    --editor-selection: rgba(124, 56, 245, 0.15);
+    --editor-selection: var(--primary-alpha-15);
     --editor-cursor: var(--roc-purple);
-    --editor-line-highlight: rgba(124, 56, 245, 0.03);
+    --editor-line-highlight: var(--primary-alpha-03);
 
-    --overlay-white: rgba(255, 255, 255, 0.8);
-    --overlay-error: rgba(220, 38, 38, 0.1);
-    --overlay-warning: rgba(217, 119, 6, 0.1);
-    --overlay-info: rgba(2, 132, 199, 0.1);
-    --overlay-type: rgba(219, 39, 119, 0.1);
-    --overlay-function: rgba(124, 58, 237, 0.1);
+    --overlay-white: var(--white-alpha-80);
+    --overlay-error: var(--error-light-alpha);
+    --overlay-warning: var(--warning-light-alpha);
+    --overlay-info: var(--info-light-alpha);
+    --overlay-type: var(--type-light-alpha);
+    --overlay-function: var(--function-light-alpha);
 
     /* Search & Highlighting Colors */
     --search-match-bg: rgba(255, 235, 59, 0.4);
@@ -302,21 +363,21 @@
     --bracket-mismatch-border: rgba(218, 54, 51, 0.4);
 
     /* Source Range Colors */
-    --source-range-bg: rgba(124, 58, 237, 0.2);
-    --source-range-border: rgba(124, 58, 237, 0.4);
-    --source-range-selection: rgba(124, 58, 237, 0.4);
-    --source-range-selection-focused: rgba(124, 58, 237, 0.5);
+    --source-range-bg: var(--primary-alpha-20);
+    --source-range-border: var(--primary-alpha-40);
+    --source-range-selection: var(--primary-alpha-40);
+    --source-range-selection-focused: var(--primary-alpha-50);
 }
 
 [data-theme="dark"] {
     /* Dark Mode Colors */
-    --gray: #6e6e6e;
-    --orange: #fd6e08;
-    --green: #8ecc88;
-    --blue: #b1afdf;
-    --violet: #7c38f5;
-    --cyan: #72f3ea;
-    --magenta: #f39bac;
+    --gray: var(--gray-dark-alt);
+    --orange: var(--orange-dark-alt);
+    --green: var(--green-dark-alt);
+    --blue: var(--blue-dark-alt);
+    --violet: var(--violet-light);
+    --cyan: var(--cyan-dark);
+    --magenta: var(--magenta-dark-alt);
 
     --syntax-keyword: var(--magenta);
     --syntax-string: var(--cyan);
@@ -348,21 +409,21 @@
     --color-accent: #22d3ee;
     --color-accent-hover: #67e8f9;
 
-    --state-hover: rgba(167, 139, 250, 0.1);
-    --state-active: rgba(167, 139, 250, 0.15);
-    --state-focus: rgba(167, 139, 250, 0.2);
+    --state-hover: var(--primary-dark-alpha-10);
+    --state-active: var(--primary-dark-alpha-15);
+    --state-focus: var(--primary-dark-alpha-20);
 
     --editor-bg: #0f172a;
-    --editor-selection: rgba(167, 139, 250, 0.2);
+    --editor-selection: var(--primary-dark-alpha-20);
     --editor-cursor: var(--color-primary);
-    --editor-line-highlight: rgba(167, 139, 250, 0.05);
+    --editor-line-highlight: var(--primary-dark-alpha-05);
 
-    --overlay-white: rgba(255, 255, 255, 0.9);
-    --overlay-error: rgba(239, 68, 68, 0.15);
-    --overlay-warning: rgba(245, 158, 11, 0.15);
-    --overlay-info: rgba(59, 130, 246, 0.15);
-    --overlay-type: rgba(244, 114, 182, 0.15);
-    --overlay-function: rgba(196, 181, 253, 0.15);
+    --overlay-white: var(--white-alpha-90);
+    --overlay-error: var(--error-dark-alpha);
+    --overlay-warning: var(--warning-dark-alpha);
+    --overlay-info: var(--info-dark-alpha);
+    --overlay-type: var(--type-dark-alpha);
+    --overlay-function: var(--function-dark-alpha);
 
     /* Search & Highlighting - Dark Mode */
     --search-match-bg: rgba(255, 235, 59, 0.3);
@@ -377,10 +438,10 @@
     --bracket-mismatch-border: rgba(248, 81, 73, 0.5);
 
     /* Source Range - Dark Mode */
-    --source-range-bg: rgba(139, 92, 246, 0.3);
-    --source-range-border: rgba(139, 92, 246, 0.5);
-    --source-range-selection: rgba(139, 92, 246, 0.4);
-    --source-range-selection-focused: rgba(139, 92, 246, 0.5);
+    --source-range-bg: var(--primary-dark-alpha-30);
+    --source-range-border: var(--primary-dark-alpha-50);
+    --source-range-selection: var(--primary-dark-alpha-40);
+    --source-range-selection-focused: var(--primary-dark-alpha-50);
 
     /* Tooltip Colors - Dark Theme */
     --tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -691,8 +752,10 @@ body {
 }
 
 .cm-scroller {
+    flex: 1;
     overflow: auto;
     height: 100%;
+    min-height: 0;
 }
 
 .cm-line {
