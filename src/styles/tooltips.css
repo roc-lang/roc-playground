@@ -1,0 +1,269 @@
+/* Tooltip styles for CodeMirror 6 and type hints */
+
+/* === BASE TOOLTIP STYLES === */
+.cm-tooltip {
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-base);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-width: 320px;
+    word-wrap: break-word;
+    line-height: var(--leading-tight);
+}
+
+.cm-tooltip-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.cm-tooltip.cm-tooltip-above .cm-tooltip-arrow {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--tooltip-border);
+}
+
+.cm-tooltip.cm-tooltip-above .cm-tooltip-arrow::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: -5px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--tooltip-bg);
+}
+
+.cm-tooltip.cm-tooltip-below .cm-tooltip-arrow {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid var(--tooltip-border);
+}
+
+.cm-tooltip.cm-tooltip-below .cm-tooltip-arrow::after {
+    content: "";
+    position: absolute;
+    bottom: -7px;
+    left: -5px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid var(--tooltip-bg);
+}
+
+/* === TYPE HINT TOOLTIP STYLES === */
+.cm-tooltip-type-hint {
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-base);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
+    box-shadow: var(--shadow-lg);
+    max-width: 350px;
+    z-index: 1000;
+    animation: tooltip-fade-in 0.15s ease-out;
+}
+
+.type-hint-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.type-hint-word {
+    font-weight: var(--font-semibold);
+    color: var(--tooltip-accent);
+    font-size: var(--text-base);
+}
+
+.type-hint-type {
+    color: var(--tooltip-type-color);
+    font-family: inherit;
+    font-size: var(--text-sm);
+}
+
+.type-hint-description {
+    color: var(--tooltip-description);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    margin-top: var(--space-2);
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* === HOVER TOOLTIP STYLES === */
+.cm-tooltip-hover {
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-base);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    box-shadow: var(--shadow-lg);
+    max-width: 300px;
+    z-index: 1000;
+}
+
+/* === DIAGNOSTIC TOOLTIP STYLES === */
+.cm-tooltip-diagnostic {
+    background: var(--tooltip-error-bg);
+    color: var(--tooltip-error-text);
+    border: 1px solid var(--tooltip-error-border);
+    border-radius: var(--radius-base);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    box-shadow: var(--shadow-lg);
+    max-width: 400px;
+    z-index: 1000;
+}
+
+.cm-tooltip-diagnostic.warning {
+    background: var(--tooltip-warning-bg);
+    color: var(--tooltip-warning-text);
+    border-color: var(--tooltip-warning-border);
+}
+
+.cm-tooltip-diagnostic.info {
+    background: var(--tooltip-info-bg);
+    color: var(--tooltip-info-text);
+    border-color: var(--tooltip-info-border);
+}
+
+/* === ANIMATIONS === */
+@keyframes tooltip-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes tooltip-fade-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+}
+
+/* === LIGHT THEME COLORS === */
+:root {
+    --tooltip-accent: #0969da;
+    --tooltip-type-color: #8250df;
+    --tooltip-description: #656d76;
+
+    --tooltip-error-bg: #fff5f5;
+    --tooltip-error-text: #c53030;
+    --tooltip-error-border: #feb2b2;
+
+    --tooltip-warning-bg: #fffbeb;
+    --tooltip-warning-text: #d69e2e;
+    --tooltip-warning-border: #fbd38d;
+
+    --tooltip-info-bg: #ebf8ff;
+    --tooltip-info-text: #3182ce;
+    --tooltip-info-border: #90cdf4;
+}
+
+/* === DARK THEME COLORS === */
+[data-theme="dark"] {
+    --tooltip-accent: #58a6ff;
+    --tooltip-type-color: #d2a8ff;
+    --tooltip-description: #8b949e;
+
+    --tooltip-error-bg: #2d1b1b;
+    --tooltip-error-text: #f85149;
+    --tooltip-error-border: #da3633;
+
+    --tooltip-warning-bg: #2d2a1b;
+    --tooltip-warning-text: #f0cc82;
+    --tooltip-warning-border: #bb8009;
+
+    --tooltip-info-bg: #1b2d3a;
+    --tooltip-info-text: #79c0ff;
+    --tooltip-info-border: #0969da;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .cm-tooltip,
+    .cm-tooltip-type-hint,
+    .cm-tooltip-hover,
+    .cm-tooltip-diagnostic {
+        max-width: 280px;
+        font-size: 12px;
+        padding: var(--space-2);
+    }
+
+    .type-hint-word {
+        font-size: var(--text-sm);
+    }
+}
+
+/* === ACCESSIBILITY === */
+@media (prefers-reduced-motion: reduce) {
+    .cm-tooltip-type-hint {
+        animation: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .cm-tooltip,
+    .cm-tooltip-type-hint,
+    .cm-tooltip-hover,
+    .cm-tooltip-diagnostic {
+        border-width: 2px;
+        box-shadow: none;
+    }
+}
+
+/* === TOOLTIP POSITIONING === */
+.cm-tooltip-positioned {
+    position: fixed;
+    pointer-events: none;
+}
+
+/* Ensure tooltips don't interfere with text selection */
+.cm-tooltip * {
+    user-select: none;
+}
+
+/* === CUSTOM TOOLTIP CLASSES === */
+.tooltip-roc-type {
+    color: var(--violet);
+    font-weight: var(--font-medium);
+}
+
+.tooltip-roc-value {
+    color: var(--blue);
+}
+
+.tooltip-roc-error {
+    color: var(--tooltip-error-text);
+    background: var(--tooltip-error-bg);
+    border-color: var(--tooltip-error-border);
+}
+
+.tooltip-roc-warning {
+    color: var(--tooltip-warning-text);
+    background: var(--tooltip-warning-bg);
+    border-color: var(--tooltip-warning-border);
+}
