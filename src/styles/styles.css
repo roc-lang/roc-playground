@@ -133,6 +133,24 @@
     --overlay-type: rgba(219, 39, 119, 0.1);
     --overlay-function: rgba(124, 58, 237, 0.1);
 
+    /* Search & Highlighting Colors */
+    --search-match-bg: rgba(255, 235, 59, 0.4);
+    --search-match-border: rgba(255, 235, 59, 0.8);
+    --search-match-selected-bg: rgba(255, 193, 7, 0.6);
+    --search-match-selected-border: rgba(255, 193, 7, 1);
+
+    /* Bracket Matching Colors */
+    --bracket-match-bg: rgba(34, 134, 58, 0.15);
+    --bracket-match-border: rgba(34, 134, 58, 0.4);
+    --bracket-mismatch-bg: rgba(218, 54, 51, 0.15);
+    --bracket-mismatch-border: rgba(218, 54, 51, 0.4);
+
+    /* Source Range Colors */
+    --source-range-bg: rgba(124, 58, 237, 0.2);
+    --source-range-border: rgba(124, 58, 237, 0.4);
+    --source-range-selection: rgba(124, 58, 237, 0.4);
+    --source-range-selection-focused: rgba(124, 58, 237, 0.5);
+
     /* Tooltip Colors */
     --tooltip-bg: var(--bg-elevated);
     --tooltip-text: var(--text-primary);
@@ -189,6 +207,24 @@
         --overlay-info: rgba(59, 130, 246, 0.15);
         --overlay-type: rgba(244, 114, 182, 0.15);
         --overlay-function: rgba(196, 181, 253, 0.15);
+
+        /* Search & Highlighting - Dark Mode */
+        --search-match-bg: rgba(255, 235, 59, 0.3);
+        --search-match-border: rgba(255, 235, 59, 0.6);
+        --search-match-selected-bg: rgba(255, 193, 7, 0.4);
+        --search-match-selected-border: rgba(255, 193, 7, 0.8);
+
+        /* Bracket Matching - Dark Mode */
+        --bracket-match-bg: rgba(46, 160, 67, 0.2);
+        --bracket-match-border: rgba(46, 160, 67, 0.5);
+        --bracket-mismatch-bg: rgba(248, 81, 73, 0.2);
+        --bracket-mismatch-border: rgba(248, 81, 73, 0.5);
+
+        /* Source Range - Dark Mode */
+        --source-range-bg: rgba(139, 92, 246, 0.3);
+        --source-range-border: rgba(139, 92, 246, 0.5);
+        --source-range-selection: rgba(139, 92, 246, 0.4);
+        --source-range-selection-focused: rgba(139, 92, 246, 0.5);
     }
 }
 
@@ -252,6 +288,24 @@
     --overlay-info: rgba(2, 132, 199, 0.1);
     --overlay-type: rgba(219, 39, 119, 0.1);
     --overlay-function: rgba(124, 58, 237, 0.1);
+
+    /* Search & Highlighting Colors */
+    --search-match-bg: rgba(255, 235, 59, 0.4);
+    --search-match-border: rgba(255, 235, 59, 0.8);
+    --search-match-selected-bg: rgba(255, 193, 7, 0.6);
+    --search-match-selected-border: rgba(255, 193, 7, 1);
+
+    /* Bracket Matching Colors */
+    --bracket-match-bg: rgba(34, 134, 58, 0.15);
+    --bracket-match-border: rgba(34, 134, 58, 0.4);
+    --bracket-mismatch-bg: rgba(218, 54, 51, 0.15);
+    --bracket-mismatch-border: rgba(218, 54, 51, 0.4);
+
+    /* Source Range Colors */
+    --source-range-bg: rgba(124, 58, 237, 0.2);
+    --source-range-border: rgba(124, 58, 237, 0.4);
+    --source-range-selection: rgba(124, 58, 237, 0.4);
+    --source-range-selection-focused: rgba(124, 58, 237, 0.5);
 }
 
 [data-theme="dark"] {
@@ -309,6 +363,24 @@
     --overlay-info: rgba(59, 130, 246, 0.15);
     --overlay-type: rgba(244, 114, 182, 0.15);
     --overlay-function: rgba(196, 181, 253, 0.15);
+
+    /* Search & Highlighting - Dark Mode */
+    --search-match-bg: rgba(255, 235, 59, 0.3);
+    --search-match-border: rgba(255, 235, 59, 0.6);
+    --search-match-selected-bg: rgba(255, 193, 7, 0.4);
+    --search-match-selected-border: rgba(255, 193, 7, 0.8);
+
+    /* Bracket Matching - Dark Mode */
+    --bracket-match-bg: rgba(46, 160, 67, 0.2);
+    --bracket-match-border: rgba(46, 160, 67, 0.5);
+    --bracket-mismatch-bg: rgba(248, 81, 73, 0.2);
+    --bracket-mismatch-border: rgba(248, 81, 73, 0.5);
+
+    /* Source Range - Dark Mode */
+    --source-range-bg: rgba(139, 92, 246, 0.3);
+    --source-range-border: rgba(139, 92, 246, 0.5);
+    --source-range-selection: rgba(139, 92, 246, 0.4);
+    --source-range-selection-focused: rgba(139, 92, 246, 0.5);
 
     /* Tooltip Colors - Dark Theme */
     --tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -671,26 +743,26 @@ body {
 }
 
 .cm-searchMatch {
-    background: rgba(255, 235, 59, 0.4);
-    border: 1px solid rgba(255, 235, 59, 0.8);
+    background: var(--search-match-bg);
+    border: 1px solid var(--search-match-border);
     border-radius: 2px;
 }
 
 .cm-searchMatch.cm-searchMatch-selected {
-    background: rgba(255, 193, 7, 0.6);
-    border-color: rgba(255, 193, 7, 1);
+    background: var(--search-match-selected-bg);
+    border-color: var(--search-match-selected-border);
 }
 
 /* === BRACKETS === */
 .cm-matchingBracket {
-    background: rgba(34, 134, 58, 0.15);
-    border: 1px solid rgba(34, 134, 58, 0.4);
+    background: var(--bracket-match-bg);
+    border: 1px solid var(--bracket-match-border);
     border-radius: 2px;
 }
 
 .cm-nonmatchingBracket {
-    background: rgba(218, 54, 51, 0.15);
-    border: 1px solid rgba(218, 54, 51, 0.4);
+    background: var(--bracket-mismatch-bg);
+    border: 1px solid var(--bracket-mismatch-border);
     border-radius: 2px;
 }
 
@@ -787,35 +859,35 @@ body {
 
 /* === SOURCE RANGE HIGHLIGHTING === */
 .cm-source-range-highlight {
-    background-color: rgba(124, 58, 237, 0.2);
+    background-color: var(--source-range-bg);
     border-radius: 2px;
-    outline: 2px solid rgba(124, 58, 237, 0.4);
+    outline: 2px solid var(--source-range-border);
     outline-offset: -1px;
 }
 
 [data-theme="dark"] .cm-source-range-highlight {
-    background-color: rgba(139, 92, 246, 0.3);
-    outline-color: rgba(139, 92, 246, 0.5);
+    background-color: var(--source-range-bg);
+    outline-color: var(--source-range-border);
 }
 
 /* Enhanced selection visibility when highlighting source ranges */
 .cm-source-range-active .cm-selectionBackground {
-    background-color: rgba(124, 58, 237, 0.4) !important;
+    background-color: var(--source-range-selection) !important;
 }
 
 .cm-source-range-active .cm-focused .cm-selectionBackground {
-    background-color: rgba(124, 58, 237, 0.5) !important;
+    background-color: var(--source-range-selection-focused) !important;
 }
 
 [data-theme="dark"] .cm-source-range-active .cm-selectionBackground {
-    background-color: rgba(139, 92, 246, 0.4) !important;
+    background-color: var(--source-range-selection) !important;
 }
 
 [data-theme="dark"]
     .cm-source-range-active
     .cm-focused
     .cm-selectionBackground {
-    background-color: rgba(139, 92, 246, 0.5) !important;
+    background-color: var(--source-range-selection-focused) !important;
 }
 
 /* === CODEMIRROR 5 LEGACY SUPPORT === */
