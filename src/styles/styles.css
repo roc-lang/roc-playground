@@ -861,13 +861,13 @@ body {
 .cm-matchingBracket {
     background: var(--bracket-match-bg);
     border: 1px solid var(--bracket-match-border);
-    border-radius: 2px;
+    border-radius: var(--size-2);
 }
 
 .cm-nonmatchingBracket {
     background: var(--bracket-mismatch-bg);
     border: 1px solid var(--bracket-mismatch-border);
-    border-radius: 2px;
+    border-radius: var(--size-2);
 }
 
 /* === SYNTAX HIGHLIGHTING === */
@@ -1243,6 +1243,9 @@ body {
 .token-punctuation {
     color: var(--syntax-punctuation);
 }
+.token-operator {
+    color: var(--syntax-operator);
+}
 .token-comment {
     color: var(--syntax-comment);
     font-style: italic;
@@ -1255,6 +1258,21 @@ body {
 }
 .token-attr {
     color: var(--syntax-attribute);
+}
+.token-builtin {
+    color: var(--syntax-type);
+    font-weight: var(--font-medium);
+}
+.token-constant {
+    color: var(--syntax-number);
+    font-weight: var(--font-medium);
+}
+.token-variable {
+    color: var(--syntax-function);
+}
+.token-error {
+    color: var(--color-error);
+    background-color: var(--overlay-error);
 }
 
 .source-range {
@@ -1602,7 +1620,7 @@ button:focus-visible,
     border-radius: var(--radius-sm);
 }
 
-.token-type {
+.token .token-type {
     color: var(--text-secondary);
     font-size: var(--text-sm);
 }
