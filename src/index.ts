@@ -61,6 +61,7 @@ class RocPlayground {
   private startWidthRight: number = 0;
   private lastCompileResult: any = null;
   private updateUrlTimeout: ReturnType<typeof setTimeout> | null = null;
+  private isUpdatingView: boolean = false;
 
   constructor() {
     this.compileTimeout = null;
@@ -70,6 +71,7 @@ class RocPlayground {
     this.startWidthLeft = 0;
     this.startWidthRight = 0;
     this.lastCompileResult = null;
+    this.isUpdatingView = false;
   }
 
   async initialize(): Promise<void> {
@@ -164,7 +166,7 @@ class RocPlayground {
     }, 500);
   }
 
-  async compileCode(code?: string): Promise<void> {
+  async compileCode(code?: string, skipViewUpdate?: boolean): Promise<void> {
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
       return;
@@ -216,8 +218,10 @@ class RocPlayground {
         this.lastCompileResult = null;
       }
 
-      // Show current view
-      this.showCurrentView();
+      // Show current view (unless we're already updating a view to prevent recursion)
+      if (!skipViewUpdate && !this.isUpdatingView) {
+        this.showCurrentView();
+      }
 
       // Update URL with compressed content
       this.updateUrlWithCompressedContent();
@@ -344,9 +348,11 @@ class RocPlayground {
     }
 
     try {
+      this.isUpdatingView = true;
+
       // Ensure source is compiled/loaded before tokenizing
       const currentCode = getDocumentContent(codeMirrorEditor);
-      await wasmInterface.compile(currentCode);
+      await this.compileCode(currentCode, true);
 
       const result = await wasmInterface.tokenize();
 
@@ -363,6 +369,8 @@ class RocPlayground {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showError(`Failed to get tokens: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
     }
 
     // Setup source range interactions after content is loaded
@@ -379,9 +387,11 @@ class RocPlayground {
     }
 
     try {
+      this.isUpdatingView = true;
+
       // Ensure source is compiled/loaded before parsing
       const currentCode = getDocumentContent(codeMirrorEditor);
-      await wasmInterface.compile(currentCode);
+      await this.compileCode(currentCode, true);
 
       const result = await wasmInterface.parse();
 
@@ -397,7 +407,9 @@ class RocPlayground {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.showError(`Failed to get parse AST: ${message}`);
+      this.showError(`Failed to get AST: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
     }
 
     // Setup source range interactions after content is loaded
@@ -414,9 +426,11 @@ class RocPlayground {
     }
 
     try {
-      // Ensure source is compiled/loaded before getting CIR
+      this.isUpdatingView = true;
+
+      // Ensure source is compiled/loaded before getting canonical IR
       const currentCode = getDocumentContent(codeMirrorEditor);
-      await wasmInterface.compile(currentCode);
+      await this.compileCode(currentCode, true);
 
       const result = await wasmInterface.canonicalize();
 
@@ -433,6 +447,8 @@ class RocPlayground {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showError(`Failed to get canonical IR: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
     }
 
     // Setup source range interactions after content is loaded
@@ -449,9 +465,11 @@ class RocPlayground {
     }
 
     try {
+      this.isUpdatingView = true;
+
       // Ensure source is compiled/loaded before getting types
       const currentCode = getDocumentContent(codeMirrorEditor);
-      await wasmInterface.compile(currentCode);
+      await this.compileCode(currentCode, true);
 
       const result = await wasmInterface.getTypes();
 
@@ -468,6 +486,8 @@ class RocPlayground {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showError(`Failed to get types: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
     }
 
     // Setup source range interactions after content is loaded
