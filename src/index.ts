@@ -288,8 +288,6 @@ class RocPlayground {
     }
 
     activeExample = index;
-    const exampleItems = document.querySelectorAll(".example-item");
-    // exampleItems[index]?.classList.add("active");
 
     // Set editor content
     setDocumentContent(codeMirrorEditor, example.code);
