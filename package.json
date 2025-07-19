@@ -1,0 +1,35 @@
+{
+  "name": "roc-playground",
+  "version": "0.0.0",
+  "description": "Interactive Roc Playground",
+  "source": "src/index.html",
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "scripts": {
+    "dev": "parcel serve src/index.html --port 8000",
+    "build": "parcel build src/index.html --public-url ./",
+    "clean": "rm -rf dist .parcel-cache",
+    "preview": "parcel serve dist/index.html --port 8001",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.10.0",
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/language": "^6.9.0",
+    "@codemirror/lint": "^6.4.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.3.0",
+    "@codemirror/theme-one-dark": "^6.1.0",
+    "@codemirror/view": "^6.21.0",
+    "codemirror": "^6.0.1"
+  },
+  "devDependencies": {
+    "@parcel/optimizer-cssnano": "^2.15.4",
+    "@parcel/optimizer-terser": "^2.15.4",
+    "@parcel/transformer-raw": "^2.10.3",
+    "@types/node": "^20.0.0",
+    "parcel": "^2.10.3",
+    "process": "^0.11.10",
+    "typescript": "^5.0.0",
+    "util": "^0.12.5"
+  }
+}

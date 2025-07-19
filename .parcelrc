@@ -1,0 +1,11 @@
+{
+  "extends": "@parcel/config-default",
+  "transformers": {
+    "*.wasm": ["@parcel/transformer-raw"]
+  },
+  "optimizers": {
+    "*.{js,mjs,jsm,jsx,ts,tsx}": ["@parcel/optimizer-terser"],
+    "*.{css,sass,scss,less}": ["@parcel/optimizer-cssnano"],
+    "*.html": []
+  }
+}
