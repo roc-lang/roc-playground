@@ -49,7 +49,7 @@ interface WasmResponse {
   } | null;
 }
 
-interface WasmInterface {
+export interface WasmInterface {
   compile: (code: string) => Promise<WasmResponse>;
   tokenize: () => Promise<WasmResponse>;
   parse: () => Promise<WasmResponse>;

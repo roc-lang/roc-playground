@@ -1,12 +1,5 @@
 import { EditorView } from "@codemirror/view";
-
-interface WasmInterface {
-  getHoverInfo: (
-    identifier: string,
-    line: number,
-    ch: number,
-  ) => Promise<any>;
-}
+import { WasmInterface } from "../wasm/roc-wasm";
 
 interface HoverInfo {
   name: string;

@@ -7,7 +7,7 @@ import {
 } from "./editor/cm6-setup";
 import { EditorView } from "@codemirror/view";
 import { createTypeHintTooltip } from "./editor/type-hints";
-import { initializeWasm } from "./wasm/roc-wasm";
+import { initializeWasm, WasmInterface } from "./wasm/roc-wasm";
 import { debugLog, initializeDebug } from "./utils/debug";
 import "./styles/styles.css";
 
@@ -26,17 +26,6 @@ interface Diagnostic {
   code?: string;
 }
 
-interface WasmInterface {
-  compile: (code: string) => Promise<any>;
-  tokenize: () => Promise<any>;
-  parse: () => Promise<any>;
-  canonicalize: () => Promise<any>;
-  getTypes: () => Promise<any>;
-  getTypeInfo: (identifier: string, line: number, ch: number) => Promise<any>;
-  isReady: () => boolean;
-  getMemoryUsage: () => number;
-  sendMessage: (message: any) => Promise<any>;
-}
 
 // Global state variables (keeping same structure as app.js)
 let wasmInterface: WasmInterface | null = null;
