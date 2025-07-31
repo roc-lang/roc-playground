@@ -3,7 +3,6 @@
  * Handles loading, initialization, and communication with the Roc WASM module
  */
 
-import { debuglog } from "util";
 import { debugLog } from "../utils/debug";
 
 interface WasmMessage {
@@ -12,21 +11,36 @@ interface WasmMessage {
   identifier?: string;
   line?: number;
   ch?: number;
-  word?: string;
-  position?: number;
+}
+
+interface Region {
+  start_line: number;
+  start_column: number;
+  end_line: number;
+  end_column: number;
+}
+
+interface Diagnostic {
+  severity: "error" | "warning" | "info";
+  message: string;
+  region: Region;
+}
+
+interface Diagnostics {
+  summary: {
+    errors: number;
+    warnings: number;
+  };
+  html: string;
+  list: Diagnostic[];
+  debug_counts: object;
 }
 
 interface WasmResponse {
   status: "SUCCESS" | "ERROR" | "INVALID_STATE" | "INVALID_MESSAGE";
   message?: string;
   data?: string;
-  diagnostics?: {
-    summary: {
-      errors: number;
-      warnings: number;
-    };
-    html: string;
-  };
+  diagnostics?: Diagnostics;
   type_info?: {
     type: string;
     description?: string;
@@ -47,6 +61,8 @@ interface WasmInterface {
   isReady: () => boolean;
   getMemoryUsage: () => number;
   sendMessage: (message: WasmMessage) => Promise<WasmResponse>;
+  getDebugLog: () => string;
+  clearDebugLog: () => void;
 }
 
 interface QueuedMessage {
@@ -59,6 +75,7 @@ let wasmModule: any = null;
 let wasmMemory: WebAssembly.Memory | null = null;
 let messageQueue: QueuedMessage[] = [];
 let messageInProgress: boolean = false;
+let wasmIsDead = false;
 
 /**
  * Initializes the WASM module and returns an interface object
@@ -70,11 +87,9 @@ export async function initializeWasm(): Promise<{
   try {
     debugLog("Initializing WASM module...");
 
-    // Load the WASM file
     const response = await fetch(
       new URL("../assets/playground.wasm", import.meta.url),
     );
-
     if (!response.ok) {
       throw new Error(
         `Failed to fetch WASM file: ${response.status} ${response.statusText}`,
@@ -82,14 +97,9 @@ export async function initializeWasm(): Promise<{
     }
 
     const bytes = await response.arrayBuffer();
+    if (bytes.byteLength === 0) throw new Error("WASM file is empty");
+    debugLog(`WASM file loaded: ${bytes.byteLength} bytes`);
 
-    if (bytes.byteLength === 0) {
-      throw new Error("WASM file is empty");
-    }
-
-    debuglog(`WASM file loaded: ${bytes.byteLength} bytes`);
-
-    // Instantiate the WASM module
     const module = await WebAssembly.instantiate(bytes, {
       env: {
         // Add any required imports here
@@ -98,59 +108,43 @@ export async function initializeWasm(): Promise<{
 
     wasmModule = module.instance.exports;
     wasmMemory = wasmModule.memory;
-
     debugLog("WASM module instantiated");
-    const availableExports = Object.keys(wasmModule);
-    debugLog("Available exports:", availableExports);
+    debugLog("Available WASM exports:", Object.keys(wasmModule));
 
-    // Log export types for debugging (verbose only)
-    availableExports.forEach((exportName) => {
-      debugLog(
-        `[WASM Debug] Export "${exportName}": ${typeof wasmModule[exportName]}`,
-      );
-    });
-
-    // Verify required exports are present
     const requiredExports = [
       "init",
       "processMessage",
-      "allocate",
-      "deallocate",
+      "allocateMessageBuffer",
+      "freeMessageBuffer",
+      "allocateResponseBuffer",
+      "freeResponseBuffer",
     ];
 
-    debugLog("[WASM Debug] Checking required exports:", requiredExports);
-
     for (const exportName of requiredExports) {
-      const exportType = typeof wasmModule[exportName];
-      debugLog(`[WASM Debug] Checking "${exportName}": ${exportType}`);
-      if (exportType !== "function") {
-        debugLog(
-          `[WASM Debug] Missing or invalid export "${exportName}": expected function, got ${exportType}`,
-        );
+      if (typeof wasmModule[exportName] !== "function") {
         throw new Error(
-          `Missing required WASM export: ${exportName} (type: ${exportType})`,
+          `Missing required WASM export: ${exportName} (type: ${typeof wasmModule[exportName]})`,
         );
       }
     }
-
     debugLog("[WASM Debug] All required exports found");
 
-    // Initialize the WASM module
     wasmModule.init();
-    console.log("WASM module initialized successfully");
+    debugLog("WASM module 'init' called successfully");
 
-    // Initialize the WASM module and get compiler version
-    const initResponse = await sendMessageDirect({ type: "INIT" });
-
+    // Since this is the first call, it's okay if it fails with OOM,
+    // as subsequent calls will use the more stable processMessage.
+    // We use it here just to get the version string easily.
+    const initResponse = await sendMessageQueued({ type: "INIT" });
     let compilerVersion: string | undefined;
+
     if (initResponse.status === "SUCCESS" && initResponse.message) {
       compilerVersion = initResponse.message;
       console.log(`Roc Compiler Version: ${compilerVersion}`);
     } else {
-      console.warn("Failed to get compiler version from INIT response");
+      console.warn("Failed to get compiler version from INIT response", initResponse);
     }
 
-    // Return the interface object and compiler version
     const result: { interface: WasmInterface; compilerVersion?: string } = {
       interface: createWasmInterface(),
     };
@@ -172,55 +166,35 @@ export async function initializeWasm(): Promise<{
  */
 function createWasmInterface(): WasmInterface {
   return {
-    // Core compilation methods
     compile: async (code) => {
-      // Reset to READY state first, then load the source
-      try {
-        await sendMessageQueued({ type: "RESET" });
-      } catch (error) {
-        console.warn("Reset failed, continuing anyway:", error);
-      }
-
-      // Now load the source
-      const loadResult = await sendMessageQueued({
-        type: "LOAD_SOURCE",
-        source: code,
-      });
-      return loadResult;
+      await sendMessageQueued({ type: "RESET" });
+      return sendMessageQueued({ type: "LOAD_SOURCE", source: code });
     },
     tokenize: () => sendMessageQueued({ type: "QUERY_TOKENS" }),
     parse: () => sendMessageQueued({ type: "QUERY_AST" }),
     canonicalize: () => sendMessageQueued({ type: "QUERY_CIR" }),
     getTypes: () => sendMessageQueued({ type: "QUERY_TYPES" }),
-
-    // Type information methods
     getTypeInfo: async (identifier, line, ch) => {
       try {
-        const result = await sendMessageQueued({
+        return await sendMessageQueued({
           type: "GET_TYPE_INFO",
           identifier,
           line,
           ch,
         });
-        return result;
       } catch (error) {
         console.error("Error getting type info:", error);
         return null;
       }
     },
-
-    // Status methods
     isReady: () => wasmModule !== null,
     getMemoryUsage: () => (wasmMemory ? wasmMemory.buffer.byteLength : 0),
-
-    // Raw message sending for advanced use
     sendMessage: sendMessageQueued,
+    getDebugLog: () => wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "Debug log not available.",
+    clearDebugLog: () => wasmModule?.clearDebugLog ? wasmModule.clearDebugLog() : undefined,
   };
 }
 
-/**
- * Sends a message to the WASM module (queued to handle concurrency)
- */
 function sendMessageQueued(message: WasmMessage): Promise<WasmResponse> {
   return new Promise<WasmResponse>((resolve, reject) => {
     messageQueue.push({ message, resolve, reject });
@@ -228,175 +202,155 @@ function sendMessageQueued(message: WasmMessage): Promise<WasmResponse> {
   });
 }
 
-/**
- * Processes the message queue, ensuring only one message is processed at a time
- */
 async function processMessageQueue(): Promise<void> {
-  if (messageInProgress || messageQueue.length === 0) {
-    return;
-  }
+  if (messageInProgress || messageQueue.length === 0) return;
 
   messageInProgress = true;
-
   while (messageQueue.length > 0) {
     const queuedMessage = messageQueue.shift();
-    if (!queuedMessage) {
-      break;
-    }
-    const { message, resolve, reject } = queuedMessage;
+    if (!queuedMessage) break;
 
+    const { message, resolve, reject } = queuedMessage;
     try {
-      const result = await sendMessageDirect(message);
+      const result = await sendMessageToWasm(message);
       resolve(result);
     } catch (error) {
       reject(error);
     }
   }
-
   messageInProgress = false;
 }
 
 /**
- * Sends a message directly to the WASM module
+ * Sends a message using the `processMessage` flow, which is more memory-stable
+ * as it avoids large internal allocations in WASM.
  */
-async function sendMessageDirect(message: WasmMessage): Promise<WasmResponse> {
-  // Note: For verbose logging, use toggleVerboseLogging() in console
-  debugLog(`[WASM Debug] sendMessageDirect called with message:`, message);
-
-  if (!wasmModule) {
-    debugLog(`[WASM Debug] WASM module not loaded!`);
-    throw new Error("WASM module not loaded");
+async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
+  debugLog(`[WASM Debug] sendMessageToWasm called with message:`, message);
+  if (wasmIsDead) {
+    throw new Error(
+      "WASM module has crashed and is in an unrecoverable state. Please reload the page.",
+    );
   }
-
-  debugLog(
-    `[WASM Debug] WASM module is loaded, available exports:`,
-    Object.keys(wasmModule),
-  );
+  if (!wasmModule || !wasmMemory) {
+    throw new Error("WASM module or memory not available");
+  }
 
   let messagePtr: number | null = null;
   let responsePtr: number | null = null;
-  let messageBytes: Uint8Array | null = null;
-  const responseBufferSize = 256 * 1024; // 256KB buffer
+  const responseBufferSize = 256 * 1024; // 256KB
 
   try {
     const messageStr = JSON.stringify(message);
-    messageBytes = new TextEncoder().encode(messageStr);
+    const messageBytes = new TextEncoder().encode(messageStr);
 
-    debugLog(`[WASM Debug] Sending message: ${messageStr}`);
-    debugLog(`[WASM Debug] Message bytes length: ${messageBytes.length}`);
+    messagePtr = wasmModule.allocateMessageBuffer(messageBytes.length);
+    if (!messagePtr) throw new Error("Failed to allocate message memory in WASM");
+    new Uint8Array(wasmMemory.buffer).set(messageBytes, messagePtr);
 
-    // Allocate memory for message
-    messagePtr = wasmModule.allocate(messageBytes.length);
-    if (!messagePtr) {
-      throw new Error("Failed to allocate message memory");
-    }
+    responsePtr = wasmModule.allocateResponseBuffer(responseBufferSize);
+    if (!responsePtr) throw new Error("Failed to allocate response memory in WASM");
 
-    if (!wasmMemory) {
-      throw new Error("WASM memory not available");
-    }
-    const memory = new Uint8Array(wasmMemory.buffer);
-    memory.set(messageBytes, messagePtr);
-
-    // Allocate memory for response
-    responsePtr = wasmModule.allocate(responseBufferSize);
-    if (!responsePtr) {
-      throw new Error("Failed to allocate response memory");
-    }
-
-    debugLog(
-      `[WASM Debug] Calling processMessage with messagePtr=${messagePtr}, messageLen=${messageBytes.length}, responsePtr=${responsePtr}, responseBufferSize=${responseBufferSize}`,
-    );
-    debugLog(`[WASM Debug] About to call processMessage...`);
-    const responseLen = wasmModule.processMessage(
+    const resultCode = wasmModule.processMessage(
       messagePtr,
       messageBytes.length,
       responsePtr,
       responseBufferSize,
     );
 
-    debugLog(`[WASM Debug] Got response length: ${responseLen}`);
-
-    if (typeof responseLen !== "number") {
-      debugLog(`[WASM Debug] processMessage returned non-number:`, responseLen);
-      throw new Error(
-        `WASM processMessage returned invalid type: ${typeof responseLen}`,
-      );
+    // WasmError enum in Zig
+    if (resultCode !== 0) {
+        const errorMessages = [
+            "success", "invalid_json", "missing_message_type", "unknown_message_type",
+            "invalid_state_for_message", "response_buffer_too_small", "internal_error"
+        ];
+        throw new Error(`WASM processMessage failed with code ${resultCode}: ${errorMessages[resultCode] || 'Unknown error'}`);
     }
 
-    if (responseLen === 0) {
-      throw new Error("WASM returned empty response");
+    const responseMemory = new DataView(wasmMemory.buffer);
+    const responseLen = responseMemory.getUint32(responsePtr, true); // true for little-endian
+
+    if (responseLen === 0 || responseLen > responseBufferSize - 4) {
+      throw new Error(`WASM returned invalid response length: ${responseLen}`);
     }
 
-    // Read response
-    if (!wasmMemory) {
-      throw new Error("WASM memory not available for response");
-    }
-    const responseBytes = new Uint8Array(
-      wasmMemory.buffer,
-      responsePtr,
-      responseLen,
-    );
+    const responseBytes = new Uint8Array(wasmMemory.buffer, responsePtr + 4, responseLen);
     const responseStr = new TextDecoder().decode(responseBytes);
 
-    debugLog(
-      `[WASM Debug] Raw response string (${responseStr.length} chars): ${responseStr.substring(0, 200)}${responseStr.length > 200 ? "..." : ""}`,
-    );
+    const responseObject = JSON.parse(responseStr) as WasmResponse;
 
-    if (!responseStr.trim()) {
-      throw new Error("WASM returned empty response string");
-    }
-
-    let parsedResponse: WasmResponse;
+    // After any operation, successful or not, check the debug log.
     try {
-      parsedResponse = JSON.parse(responseStr) as WasmResponse;
-      debugLog(`[WASM Debug] Parsed response:`, parsedResponse);
-    } catch (jsonError) {
-      debugLog(`[WASM Debug] JSON parse error:`, jsonError);
-      throw new Error(
-        `Invalid JSON response from WASM: ${responseStr.substring(0, 100)}...`,
-      );
+      const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "";
+      if (wasmDebugLog) {
+          console.log("%c--- WASM Internal Debug Log (Success) ---", "color: #00a; font-weight: bold;");
+          console.log(wasmDebugLog);
+          console.log("%c-----------------------------------------", "color: #00a; font-weight: bold;");
+      }
+    } catch (logError) {
+      console.error("Failed to retrieve WASM debug log on success:", logError);
+    } finally {
+      // Always clear the log after we've read it.
+      if (wasmModule?.clearDebugLog) {
+          wasmModule.clearDebugLog();
+      }
     }
 
-    return parsedResponse;
+    return responseObject;
   } catch (error) {
-    debugLog("[WASM Debug] Error in sendMessageDirect:", error);
-    debugLog("[WASM Debug] Error occurred with message:", message);
-    debugLog(
-      "[WASM Debug] WASM module state:",
-      wasmModule ? "loaded" : "not loaded",
-    );
+    debugLog("[WASM Debug] Error in sendMessageToWasm:", error);
+    if (error instanceof WebAssembly.RuntimeError) {
+      console.error(
+        "Unrecoverable WASM RuntimeError detected. The WASM module has been deactivated.",
+      );
+      wasmIsDead = true;
+
+      // Fetch and display the debug log from WASM for diagnostics
+      try {
+        const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "Debug log not available.";
+        if (wasmDebugLog) {
+            console.log("%c--- WASM Internal Debug Log ---", "color: #f5a; font-weight: bold;");
+            console.log(wasmDebugLog);
+            console.log("%c-------------------------------", "color: #f5a; font-weight: bold;");
+        }
+      } catch (logError) {
+        console.error("Failed to retrieve WASM debug log:", logError);
+      }
+    }
     throw error;
   } finally {
-    // Clean up memory
-    if (messagePtr && wasmModule.deallocate && messageBytes) {
-      wasmModule.deallocate(messagePtr, messageBytes.length);
+    if (messagePtr !== null) {
+      wasmModule.freeMessageBuffer();
     }
-    if (responsePtr && wasmModule.deallocate) {
-      wasmModule.deallocate(responsePtr, responseBufferSize);
+    if (responsePtr !== null) {
+      wasmModule.freeResponseBuffer();
     }
   }
 }
 
-/**
- * Utility function to check if WASM is ready
- */
+function readNullTerminatedString(ptr: number): string {
+  if (!wasmMemory || !ptr) return "";
+  const memory = new Uint8Array(wasmMemory.buffer);
+  let end = ptr;
+  while (memory[end] !== 0) {
+    end++;
+  }
+  const bytes = memory.subarray(ptr, end);
+  return new TextDecoder().decode(bytes);
+}
+
 export function isWasmReady(): boolean {
   return wasmModule !== null;
 }
 
-/**
- * Gets the current memory usage of the WASM module
- */
 export function getWasmMemoryUsage(): number {
   return wasmMemory ? wasmMemory.buffer.byteLength : 0;
 }
 
-/**
- * Resets the WASM module state (for testing or recovery)
- */
 export function resetWasm(): void {
   wasmModule = null;
   wasmMemory = null;
   messageQueue = [];
   messageInProgress = false;
+  wasmIsDead = false;
 }

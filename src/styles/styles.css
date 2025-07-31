@@ -1633,28 +1633,25 @@ button:focus-visible,
 }
 
 /* Token type styling */
-.token.keyword .token-type {
+.token-keyword .token-type {
     color: var(--syntax-keyword);
 }
-.token.identifier .token-type {
-    color: var(--syntax-function);
-}
-.token.operator .token-type {
+.token-operator .token-type {
     color: var(--syntax-operator);
 }
-.token.string .token-type {
+.token-string .token-type {
     color: var(--syntax-string);
 }
-.token.number .token-type {
+.token-number .token-type {
     color: var(--syntax-number);
 }
-.token.punctuation .token-type {
+.token-punctuation .token-type {
     color: var(--syntax-punctuation);
 }
-.token.comment .token-type {
+.token-comment .token-type {
     color: var(--syntax-comment);
 }
-.token.eof .token-type {
+.token-eof .token-type {
     color: var(--text-muted);
 }
 
