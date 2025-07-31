@@ -1,12 +1,10 @@
 import { EditorView } from "@codemirror/view";
+import { WasmInterface } from "../wasm/roc-wasm";
 
-interface WasmInterface {
-  getTypeInfo: (identifier: string, line: number, ch: number) => Promise<any>;
-}
-
-interface TypeInfo {
-  type: string;
-  description?: string | null;
+interface HoverInfo {
+  name: string;
+  type_str: string;
+  docs?: string | null;
 }
 
 interface WordInfo {
@@ -39,13 +37,13 @@ export function createTypeHintTooltip(wasmInterface: WasmInterface | null) {
       const column = pos - line.from;
 
       // Get type information from WASM
-      const typeInfo = await getTypeInformation(
+      const hoverInfo = await getHoverInformation(
         wasmInterface,
         wordInfo.word,
         lineNumber,
         column,
       );
-      if (!typeInfo) {
+      if (!hoverInfo) {
         return null;
       }
 
@@ -53,7 +51,7 @@ export function createTypeHintTooltip(wasmInterface: WasmInterface | null) {
         pos,
         above: true,
         create(_view: EditorView) {
-          const dom = createTooltipDOM(typeInfo);
+          const dom = createTooltipDOM(hoverInfo);
           return { dom };
         },
       };
@@ -116,52 +114,60 @@ function getWordAtPosition(view: EditorView, pos: number): WordInfo | null {
 /**
  * Creates the DOM element for the type hint tooltip
  */
-function createTooltipDOM(typeInfo: TypeInfo): HTMLElement {
-  const element = document.createElement("span");
+function createTooltipDOM(hoverInfo: HoverInfo): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "cm-tooltip-content type-hint-tooltip"; // Add a class for styling
 
-  // Show only the type information - no styling since CodeMirror handles the tooltip container
-  if (typeInfo.type) {
-    element.textContent = typeInfo.type;
-  } else {
-    element.textContent = "Unknown type";
+  const typeElement = document.createElement("div");
+  typeElement.className = "cm-tooltip-type";
+  typeElement.textContent = hoverInfo.type_str;
+  element.appendChild(typeElement);
+
+  if (hoverInfo.docs) {
+    const docsElement = document.createElement("div");
+    docsElement.className = "cm-tooltip-docs";
+    docsElement.textContent = hoverInfo.docs;
+    element.appendChild(docsElement);
   }
 
   return element;
 }
 
 /**
- * Gets type information for a word at a specific position
+ * Gets hover information for a word at a specific position
  */
-async function getTypeInformation(
+async function getHoverInformation(
   wasmInterface: WasmInterface | null,
   identifier: string,
   line: number,
   column: number,
-): Promise<TypeInfo | null> {
+): Promise<HoverInfo | null> {
   try {
-    if (!wasmInterface || !wasmInterface.getTypeInfo) {
-      console.warn("getTypeInfo not available in WASM interface");
+    if (!wasmInterface || !wasmInterface.getHoverInfo) {
+      console.warn("getHoverInfo not available in WASM interface");
       return null;
     }
 
-    const result = await wasmInterface.getTypeInfo(identifier, line, column);
+    // Line numbers for WASM are 1-based
+    const result = await wasmInterface.getHoverInfo(
+      identifier,
+      line + 1,
+      column,
+    );
 
-    if (!result || result.error || result.status !== "SUCCESS") {
+    if (!result || result.status !== "SUCCESS" || !result.hover_info) {
       return null;
     }
 
-    // Extract type information from the response
-    const typeInfo = result.type_info;
-    if (!typeInfo || !typeInfo.type) {
-      return null;
-    }
+    const hoverInfo = result.hover_info;
 
     return {
-      type: typeInfo.type,
-      description: typeInfo.description || null,
+      name: hoverInfo.name,
+      type_str: hoverInfo.type_str,
+      docs: hoverInfo.docs || null,
     };
   } catch (error) {
-    console.error("Error in getTypeInformation:", error);
+    console.error("Error in getHoverInformation:", error);
     return null;
   }
 }
@@ -177,16 +183,16 @@ export async function showTypeHintAtPosition(
   const wordInfo = getWordAtPosition(view, pos);
   if (!wordInfo) return;
 
-  const typeInfo = await getTypeInformation(
+  const hoverInfo = await getHoverInformation(
     wasmInterface,
     wordInfo.word,
     wordInfo.lineNumber,
     wordInfo.column,
   );
-  if (!typeInfo) return;
+  if (!hoverInfo) return;
 
   // Create and show tooltip
-  const tooltip = createTooltipDOM(typeInfo);
+  const tooltip = createTooltipDOM(hoverInfo);
   document.body.appendChild(tooltip);
 
   // Position the tooltip
