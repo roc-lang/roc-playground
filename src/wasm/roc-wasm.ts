@@ -41,10 +41,12 @@ interface WasmResponse {
   message?: string;
   data?: string;
   diagnostics?: Diagnostics;
-  type_info?: {
-    type: string;
-    description?: string;
-  };
+  hover_info?: {
+    name: string;
+    type_str: string;
+    definition_region: Region;
+    docs: string | null;
+  } | null;
 }
 
 interface WasmInterface {
@@ -53,7 +55,7 @@ interface WasmInterface {
   parse: () => Promise<WasmResponse>;
   canonicalize: () => Promise<WasmResponse>;
   getTypes: () => Promise<WasmResponse>;
-  getTypeInfo: (
+  getHoverInfo: (
     identifier: string,
     line: number,
     ch: number,
@@ -174,16 +176,18 @@ function createWasmInterface(): WasmInterface {
     parse: () => sendMessageQueued({ type: "QUERY_AST" }),
     canonicalize: () => sendMessageQueued({ type: "QUERY_CIR" }),
     getTypes: () => sendMessageQueued({ type: "QUERY_TYPES" }),
-    getTypeInfo: async (identifier, line, ch) => {
+    getHoverInfo: async (identifier, line, ch) => {
       try {
+        // The WASM module expects a 1-based column, but editor tooling
+        // often provides a 0-based column (`ch`).
         return await sendMessageQueued({
-          type: "GET_TYPE_INFO",
+          type: "GET_HOVER_INFO",
           identifier,
           line,
-          ch,
+          ch: ch + 1,
         });
       } catch (error) {
-        console.error("Error getting type info:", error);
+        console.error("Error getting hover info:", error);
         return null;
       }
     },

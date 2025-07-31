@@ -52,7 +52,7 @@ All responses from the module are JSON objects based on the `WasmResponse` struc
   "message": "(optional) A human-readable description of the outcome",
   "data": "(optional) Payload data, typically HTML content for queries",
   "diagnostics": "(optional) Detailed compilation diagnostics",
-  "type_info": "(optional) Type information for an identifier"
+  "hover_info": "(optional) Hover information for an identifier"
 }
 ```
 
@@ -173,25 +173,33 @@ The module's behavior is dictated by its current state. Sending a message in the
     }
     ```
 
-### 4.7. `GET_TYPE_INFO`
+### 4.7. `GET_HOVER_INFO`
 
--   **Description:** Requests the inferred type for a specific identifier at a given source position (1-based line, 0-based column).
+-   **Description:** Requests hover information for a specific identifier at a given source position (1-based line and column). This includes the identifier's name, its inferred type string, the region where it's defined, and any associated documentation.
 -   **Required State:** `LOADED`
 -   **Request Payload:**
     ```json
     {
-      "type": "GET_TYPE_INFO",
+      "type": "GET_HOVER_INFO",
       "identifier": "myVar",
       "line": 5,
       "ch": 2
     }
     ```
--   **Success Response:** The `type_info` object contains the string representation of the identifier's type.
+-   **Success Response:** The `hover_info` object contains detailed information about the identifier.
     ```json
     {
       "status": "SUCCESS",
-      "type_info": {
-        "type": "Str"
+      "hover_info": {
+        "name": "myVar",
+        "type_str": "Str",
+        "definition_region": {
+          "start_line": 5,
+          "start_column": 1,
+          "end_line": 5,
+          "end_column": 6
+        },
+        "docs": null
       }
     }
     ```
@@ -243,12 +251,14 @@ Defines a region in the source code.
 -   `end_line`: `u32` - The 1-based ending line number.
 -   `end_column`: `u32` - The 1-based ending column number.
 
-### 5.4. `TypeInfo` Object
+### 5.4. `HoverInfo` Object
 
-Returned by `GET_TYPE_INFO`, this object provides details about an identifier's type.
+Returned by `GET_HOVER_INFO`, this object provides rich information about an identifier for UI pop-ups.
 
--   `type`: `string` - The string representation of the inferred type (e.g., `"Str"`, `"I32"`, `"List U8"`).
--   `description`: `?string` - (Optional) A more detailed description of the type. Currently unused.
+-   `name`: `string` - The name of the identifier (e.g., `"myVar"`).
+-   `type_str`: `string` - The string representation of the inferred type (e.g., `"Str"`, `"I32"`).
+-   `definition_region`: `Region` - The source code region where the identifier is defined.
+-   `docs`: `?string` - (Optional) Documentation comments associated with the definition. Currently `null`.
 
 ## 6. Memory Management
 
