@@ -50,6 +50,8 @@ class RocPlayground {
   private lastCompileResult: any = null;
   private updateUrlTimeout: ReturnType<typeof setTimeout> | null = null;
   private isUpdatingView: boolean = false;
+  private boundHandleMouseMove: ((e: MouseEvent) => void) | null = null;
+  private boundHandleMouseUp: (() => void) | null = null;
 
   constructor() {
     this.compileTimeout = null;
@@ -133,8 +135,12 @@ class RocPlayground {
     const themeAttr = document.documentElement.getAttribute("data-theme");
     const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
 
+    // Load Basic Types example as default content
+    const basicTypesExample = examples.find(ex => ex.name === "Basic Types");
+    const initialContent = basicTypesExample ? basicTypesExample.code : "# Select an example or write Roc code here...";
+
     codeMirrorEditor = createFullEditor(editorContainer, {
-      content: "# Select an example or write Roc code here...",
+      content: initialContent,
       theme: theme,
       onHover: createTypeHintTooltip(wasmInterface),
       onChange: (content: string) => {
@@ -599,10 +605,13 @@ class RocPlayground {
       this.startX = e.clientX;
       this.startWidthLeft = editorContainer?.offsetWidth || 0;
       this.startWidthRight = outputContainer?.offsetWidth || 0;
-      document.addEventListener("mousemove", (e: MouseEvent) =>
-        this.handleMouseMove(e),
-      );
-      document.addEventListener("mouseup", () => this.handleMouseUp());
+      
+      // Create bound functions to properly remove them later
+      this.boundHandleMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
+      this.boundHandleMouseUp = () => this.handleMouseUp();
+      
+      document.addEventListener("mousemove", this.boundHandleMouseMove);
+      document.addEventListener("mouseup", this.boundHandleMouseUp);
     });
   }
 
@@ -631,10 +640,16 @@ class RocPlayground {
 
   handleMouseUp(): void {
     this.isResizing = false;
-    document.removeEventListener("mousemove", (e: MouseEvent) =>
-      this.handleMouseMove(e),
-    );
-    document.removeEventListener("mouseup", () => this.handleMouseUp());
+    
+    // Remove the bound event listeners
+    if (this.boundHandleMouseMove) {
+      document.removeEventListener("mousemove", this.boundHandleMouseMove);
+      this.boundHandleMouseMove = null;
+    }
+    if (this.boundHandleMouseUp) {
+      document.removeEventListener("mouseup", this.boundHandleMouseUp);
+      this.boundHandleMouseUp = null;
+    }
   }
 
   setupUrlSharing(): void {
