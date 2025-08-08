@@ -133,8 +133,12 @@ class RocPlayground {
     const themeAttr = document.documentElement.getAttribute("data-theme");
     const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
 
+    // Load Basic Types example as default content
+    const basicTypesExample = examples.find(ex => ex.name === "Basic Types");
+    const initialContent = basicTypesExample ? basicTypesExample.code : "# Select an example or write Roc code here...";
+
     codeMirrorEditor = createFullEditor(editorContainer, {
-      content: "# Select an example or write Roc code here...",
+      content: initialContent,
       theme: theme,
       onHover: createTypeHintTooltip(wasmInterface),
       onChange: (content: string) => {
