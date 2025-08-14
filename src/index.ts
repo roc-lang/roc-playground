@@ -440,10 +440,7 @@ class RocPlayground {
     // Clear the input value
     sourceInput.value = "";
     
-    // Add input event listener for auto-resize
-    sourceInput.addEventListener("input", () => {
-      this.resetSourceInputHeight();
-    });
+    // Input event listener removed (was causing auto-resize issue)
     
     // Setup keydown handler
     sourceInput.addEventListener("keydown", (event) => {
@@ -455,18 +452,15 @@ class RocPlayground {
       this.handleReplInputKeyup(event);
     });
     
-    // Initial height reset and focus
-    this.resetSourceInputHeight();
+    // Focus the input
     sourceInput.focus();
     
     debugLog("REPL interface set up successfully");
   }
 
   resetSourceInputHeight(): void {
-    const sourceInput = document.getElementById("source-input") as HTMLTextAreaElement;
-    if (sourceInput) {
-      sourceInput.style.height = sourceInput.scrollHeight + 2 + "px"; // +2 for the border
-    }
+    // Function disabled - was causing undesired auto-resize behavior
+    // Keeping function stub to avoid breaking other code that might call it
   }
 
   handleReplInputKeydown(event: KeyboardEvent): void {
@@ -506,34 +500,37 @@ class RocPlayground {
     
     switch (keyCode) {
       case UP:
+        event.preventDefault(); // Prevent cursor jumping
         if (replInputHistory.length === 0) {
           return;
         }
-        if (replInputHistoryIndex === replInputHistory.length - 1) {
+        if (replInputHistoryIndex === replInputHistory.length) {
           replInputStash = sourceInput.value;
-        }
-        const upValue = replInputHistory[replInputHistoryIndex];
-        if (upValue !== undefined) {
-          this.setReplInput(upValue);
         }
         
         if (replInputHistoryIndex > 0) {
           replInputHistoryIndex--;
+          const upValue = replInputHistory[replInputHistoryIndex];
+          if (upValue !== undefined) {
+            this.setReplInput(upValue);
+          }
         }
         break;
         
       case DOWN:
+        event.preventDefault(); // Prevent cursor jumping
         if (replInputHistory.length === 0) {
           return;
         }
-        if (replInputHistoryIndex === replInputHistory.length - 1) {
-          this.setReplInput(replInputStash);
-        } else {
+        if (replInputHistoryIndex < replInputHistory.length - 1) {
           replInputHistoryIndex++;
           const downValue = replInputHistory[replInputHistoryIndex];
           if (downValue !== undefined) {
             this.setReplInput(downValue);
           }
+        } else if (replInputHistoryIndex === replInputHistory.length - 1) {
+          replInputHistoryIndex = replInputHistory.length;
+          this.setReplInput(replInputStash);
         }
         break;
         
@@ -548,7 +545,7 @@ class RocPlayground {
       sourceInput.value = value;
       sourceInput.selectionStart = value.length;
       sourceInput.selectionEnd = value.length;
-      this.resetSourceInputHeight();
+      // Removed auto-resize call
     }
   }
 
@@ -560,6 +557,12 @@ class RocPlayground {
     }
     
     debugLog(`Processing REPL input: "${input}"`);
+    
+    // Hide intro text on first input
+    const introText = document.getElementById("repl-intro-text");
+    if (introText) {
+      introText.style.display = "none";
+    }
     
     // Add to input history
     replInputHistory.push(input);
@@ -577,7 +580,14 @@ class RocPlayground {
       if (response.status === "SUCCESS" && response.result) {
         const result = response.result;
         debugLog(`REPL result: type=${result.type}, output="${result.output}"`);
-        this.addReplHistoryEntry(result.output, result.type);
+        
+        // Pass error stage and details for enhanced error display
+        this.addReplHistoryEntry(
+          result.output, 
+          result.type, 
+          result.error_stage, 
+          result.error_details
+        );
         
         // Add to internal history
         replHistory.push({
@@ -606,7 +616,7 @@ class RocPlayground {
     }
   }
 
-  addReplHistoryEntry(text: string, type: "input" | "definition" | "expression" | "error"): void {
+  addReplHistoryEntry(text: string, type: "input" | "definition" | "expression" | "error", errorStage?: string, errorDetails?: string): void {
     const historyText = document.getElementById("history-text");
     if (!historyText) return;
     
@@ -614,16 +624,66 @@ class RocPlayground {
     entry.className = "repl-entry";
     
     if (type === "input") {
-      entry.innerHTML = `<div class="repl-input">» ${this.escapeHtml(text)}</div>`;
+      entry.innerHTML = `<div class="repl-input">
+        <span class="repl-prompt-symbol">»</span>
+        <span class="repl-input-text">${this.escapeHtml(text)}</span>
+      </div>`;
+    } else if (type === "error") {
+      // Enhanced error display with stage information
+      const stageClass = errorStage ? `repl-error-${errorStage}` : '';
+      const stageName = errorStage ? this.getErrorStageName(errorStage) : 'Error';
+      
+      entry.innerHTML = `<div class="repl-error ${stageClass}">
+        <div class="repl-error-header">
+          <span class="repl-error-icon">⚠</span>
+          <span class="repl-error-stage">${stageName}</span>
+        </div>
+        <div class="repl-error-message">${this.escapeHtml(text)}</div>
+        ${errorDetails ? `<div class="repl-error-details">${this.escapeHtml(errorDetails)}</div>` : ''}
+      </div>`;
     } else {
-      const className = type === "error" ? "repl-error" : "repl-output";
-      entry.innerHTML = `<div class="${className}">${this.escapeHtml(text)}</div>`;
+      // Success outputs (definition/expression) 
+      // Double-check that error text doesn't accidentally get here
+      if (text.toLowerCase().includes('error')) {
+        // Safety fallback - treat as error even if type suggests otherwise
+        entry.innerHTML = `<div class="repl-error">
+          <div class="repl-error-header">
+            <span class="repl-error-icon">⚠</span>
+            <span class="repl-error-stage">Error</span>
+          </div>
+          <div class="repl-error-message">${this.escapeHtml(text)}</div>
+        </div>`;
+      } else {
+        const icon = type === "definition" ? "✓" : "→";
+        const className = type === "definition" ? "repl-definition" : "repl-expression";
+        
+        entry.innerHTML = `<div class="${className}">
+          <span class="repl-output-icon">${icon}</span>
+          <span class="repl-output-text">${this.escapeHtml(text)}</span>
+        </div>`;
+      }
     }
     
     historyText.appendChild(entry);
     
-    // Scroll to bottom
-    historyText.scrollTop = historyText.scrollHeight;
+    // Scroll to bottom with smooth behavior
+    requestAnimationFrame(() => {
+      historyText.scrollTop = historyText.scrollHeight;
+    });
+  }
+
+  private getErrorStageName(stage: string): string {
+    const stageNames: Record<string, string> = {
+      parse: "Syntax Error",
+      canonicalize: "Canonicalization Error", 
+      typecheck: "Type Error",
+      layout: "Layout Error",
+      evaluation: "Runtime Error",
+      interpreter: "Interpreter Error",
+      runtime: "Runtime Error", 
+      unknown: "Error"
+    };
+    return stageNames[stage] || "Error";
   }
 
   checkReplTutorialStep(input: string): void {

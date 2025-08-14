@@ -258,6 +258,13 @@
     --tooltip-shadow: var(--shadow-lg);
     --tooltip-type: var(--syntax-type);
     --tooltip-error: var(--color-error);
+
+    /* REPL-specific colors (missing definitions) */
+    --text-contrast: var(--text-primary);
+    --red-3: #dc2626;
+    --primary-1: var(--roc-purple);
+    --primary-2: var(--roc-purple-light);
+    --primary-contrast: #ffffff;
 }
 
 /* Dark Theme */
@@ -1833,6 +1840,11 @@ button:focus-visible,
     /*margin-bottom: var(--space-6);*/
     color: var(--text-secondary);
     opacity: 0.8;
+    transition: opacity 0.3s ease-out;
+}
+
+#repl-intro-text[style*="display: none"] {
+    opacity: 0;
 }
 
 .color-blue {
@@ -1847,28 +1859,139 @@ button:focus-visible,
     margin-bottom: var(--space-4);
 }
 
+/* Enhanced REPL Input Styling */
 .repl-input {
     color: var(--text-contrast);
     margin-bottom: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
 }
 
-.repl-output {
-    color: var(--green-dark);
+.repl-prompt-symbol {
+    color: var(--color-primary);
+    font-weight: var(--font-semibold);
+    user-select: none;
+}
+
+.repl-input-text {
+    color: var(--text-contrast);
+}
+
+/* Enhanced REPL Success Outputs */
+.repl-definition,
+.repl-expression {
     margin-left: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
 }
 
+.repl-definition {
+    color: var(--color-success);
+}
+
+.repl-expression {
+    color: var(--color-accent);
+}
+
+.repl-output-icon {
+    color: currentColor;
+    font-weight: var(--font-semibold);
+    user-select: none;
+    opacity: 0.7;
+}
+
+.repl-output-text {
+    color: currentColor;
+}
+
+/* Enhanced REPL Error Styling */
 .repl-error {
-    color: var(--red-3);
     margin-left: var(--space-4);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-base);
+    background-color: var(--overlay-error);
+    border-left: 3px solid var(--color-error);
+}
+
+.repl-error-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.repl-error-icon {
+    color: var(--color-error);
+    font-weight: var(--font-semibold);
+    user-select: none;
+}
+
+.repl-error-stage {
+    color: var(--color-error);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.repl-error-message {
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    margin-bottom: var(--space-2);
+}
+
+.repl-error-details {
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    opacity: 0.8;
+}
+
+/* Stage-specific Error Colors using existing design system */
+.repl-error-parse {
+    border-left-color: var(--color-warning);
+    background-color: var(--overlay-warning);
+}
+
+.repl-error-parse .repl-error-icon,
+.repl-error-parse .repl-error-stage {
+    color: var(--color-warning);
+}
+
+.repl-error-typecheck {
+    border-left-color: var(--color-primary);
+    background-color: var(--state-focus);
+}
+
+.repl-error-typecheck .repl-error-icon,
+.repl-error-typecheck .repl-error-stage {
+    color: var(--color-primary);
+}
+
+.repl-error-evaluation,
+.repl-error-runtime {
+    border-left-color: var(--color-error);
+    background-color: var(--overlay-error);
+}
+
+.repl-error-evaluation .repl-error-icon,
+.repl-error-evaluation .repl-error-stage,
+.repl-error-runtime .repl-error-icon,
+.repl-error-runtime .repl-error-stage {
+    color: var(--color-error);
 }
 
 #repl-prompt {
     position: relative;
-    left: 16px;
-    top: 0.95rem;
-    font-size: 1.25rem;
+    left: var(--space-4); /* Changed from 16px magic number */
+    top: var(--space-4); /* Changed from 0.95rem magic number */
+    font-size: var(--text-lg); /* Changed from 1.25rem magic number */
     height: 0;
-    z-index: 2;
+    z-index: var(--z-dropdown);
     font-family: var(--font-mono);
     pointer-events: none;
     user-select: none;
@@ -1876,8 +1999,8 @@ button:focus-visible,
 
 #source-input {
     flex-shrink: 0; /* Don't shrink the input */
-    background: var(--dark-code-bg);
-    border: none;
+    background: var(--bg-primary);
+    border: 1px solid transparent; /* Better than no border for focus visibility */
     color: var(--text-contrast);
     font-family: var(--font-mono);
     font-size: var(--text-base);
@@ -1898,8 +2021,15 @@ button:focus-visible,
 }
 
 #source-input:focus {
-    background: var(--dark-code-bg);
-    box-shadow: inset 0 0 0 2px var(--primary-alpha-20);
+    background: var(--bg-primary);
+    /*border-color: var(--color-primary);*/
+    box-shadow: 0 0 0 3px var(--primary-alpha-20);
+}
+
+/* Better focus visibility for keyboard navigation */
+#source-input:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 /* REPL Tutorial Styles */

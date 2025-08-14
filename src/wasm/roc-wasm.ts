@@ -46,6 +46,8 @@ interface ReplResult {
   output: string;
   type: "definition" | "expression" | "error";
   compiler_available: boolean;
+  error_stage?: "parse" | "canonicalize" | "typecheck" | "layout" | "evaluation" | "interpreter" | "runtime" | "unknown";
+  error_details?: string;
 }
 
 interface WasmResponse {
