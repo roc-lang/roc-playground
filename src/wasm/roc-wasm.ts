@@ -132,14 +132,13 @@ export async function initializeWasm(): Promise<{
     wasmMemory = wasmModule.memory;
     debugLog("WASM module instantiated");
     debugLog("Available WASM exports:", Object.keys(wasmModule));
-
+    
     const requiredExports = [
       "init",
-      "processMessage",
+      "processAndRespond",
       "allocateMessageBuffer",
       "freeMessageBuffer",
-      "allocateResponseBuffer",
-      "freeResponseBuffer",
+      "freeWasmString",
     ];
 
     for (const exportName of requiredExports) {
@@ -268,48 +267,68 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
 
   let messagePtr: number | null = null;
   let responsePtr: number | null = null;
-  const responseBufferSize = 256 * 1024; // 256KB
 
   try {
     const messageStr = JSON.stringify(message);
     const messageBytes = new TextEncoder().encode(messageStr);
+    
+    debugLog(`[WASM Debug] Sending JSON message: ${messageStr}`);
+    debugLog(`[WASM Debug] Message bytes length: ${messageBytes.length}`);
 
+    // Allocate message buffer (matching integration test API)
     messagePtr = wasmModule.allocateMessageBuffer(messageBytes.length);
-    if (!messagePtr) throw new Error("Failed to allocate message memory in WASM");
+    debugLog(`[WASM Debug] Allocated message buffer at: ${messagePtr}`);
+    if (!messagePtr || messagePtr === 0) {
+      throw new Error("Failed to allocate message memory in WASM");
+    }
+    
+    // Copy message to WASM memory
     new Uint8Array(wasmMemory.buffer).set(messageBytes, messagePtr);
+    debugLog(`[WASM Debug] Copied message to WASM memory`);
 
-    responsePtr = wasmModule.allocateResponseBuffer(responseBufferSize);
-    if (!responsePtr) throw new Error("Failed to allocate response memory in WASM");
+    // Call processAndRespond (matching integration test API)
+    debugLog(`[WASM Debug] Calling processAndRespond(${messagePtr}, ${messageBytes.length})`);
+    responsePtr = wasmModule.processAndRespond(messagePtr, messageBytes.length);
+    debugLog(`[WASM Debug] processAndRespond returned: ${responsePtr}`);
 
-    const resultCode = wasmModule.processMessage(
-      messagePtr,
-      messageBytes.length,
-      responsePtr,
-      responseBufferSize,
-    );
+    // Free message buffer immediately after use
+    wasmModule.freeMessageBuffer();
+    messagePtr = null;
 
-    // WasmError enum in Zig
-    if (resultCode !== 0) {
-        const errorMessages = [
-            "success", "invalid_json", "missing_message_type", "unknown_message_type",
-            "invalid_state_for_message", "response_buffer_too_small", "internal_error"
-        ];
-        throw new Error(`WASM processMessage failed with code ${resultCode}: ${errorMessages[resultCode] || 'Unknown error'}`);
+    if (!responsePtr || responsePtr === 0) {
+      throw new Error("WASM processAndRespond returned null, indicating an internal error");
     }
 
-    const responseMemory = new DataView(wasmMemory.buffer);
-    const responseLen = responseMemory.getUint32(responsePtr, true); // true for little-endian
-
-    if (responseLen === 0 || responseLen > responseBufferSize - 4) {
-      throw new Error(`WASM returned invalid response length: ${responseLen}`);
+    // Read the null-terminated response string from WASM memory
+    const responseMemory = new Uint8Array(wasmMemory.buffer);
+    let responseLength = 0;
+    
+    // Find null terminator
+    for (let i = responsePtr; i < wasmMemory.buffer.byteLength; i++) {
+      if (responseMemory[i] === 0) {
+        responseLength = i - responsePtr;
+        break;
+      }
     }
 
-    const responseBytes = new Uint8Array(wasmMemory.buffer, responsePtr + 4, responseLen);
+    if (responseLength === 0) {
+      throw new Error("WASM returned response string without a null terminator");
+    }
+
+    const responseBytes = responseMemory.slice(responsePtr, responsePtr + responseLength);
     const responseStr = new TextDecoder().decode(responseBytes);
+    
+    debugLog(`[WASM Debug] Response string: ${responseStr}`);
 
+    // Parse JSON response
     const responseObject = JSON.parse(responseStr) as WasmResponse;
+    debugLog(`[WASM Debug] Parsed response object:`, responseObject);
 
-    // After any operation, successful or not, check the debug log.
+    // Free the WASM-allocated response string
+    wasmModule.freeWasmString(responsePtr);
+    responsePtr = null;
+
+    // Check debug log (optional, for debugging)
     try {
       const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "";
       if (wasmDebugLog) {
@@ -320,7 +339,7 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     } catch (logError) {
       console.error("Failed to retrieve WASM debug log on success:", logError);
     } finally {
-      // Always clear the log after we've read it.
+      // Always clear the log after we've read it
       if (wasmModule?.clearDebugLog) {
           wasmModule.clearDebugLog();
       }
@@ -349,11 +368,20 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     }
     throw error;
   } finally {
+    // Clean up any remaining allocated memory
     if (messagePtr !== null) {
-      wasmModule.freeMessageBuffer();
+      try {
+        wasmModule.freeMessageBuffer();
+      } catch (e) {
+        console.warn("Failed to free message buffer:", e);
+      }
     }
     if (responsePtr !== null) {
-      wasmModule.freeResponseBuffer();
+      try {
+        wasmModule.freeWasmString(responsePtr);
+      } catch (e) {
+        console.warn("Failed to free response string:", e);
+      }
     }
   }
 }

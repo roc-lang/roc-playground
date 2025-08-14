@@ -32,7 +32,9 @@
             </div>
             <div class="header-status">
                 <div class="mode-toggle">
-                    <button class="mode-button active" id="editorModeBtn">Editor</button>
+                    <button class="mode-button active" id="editorModeBtn">
+                        Editor
+                    </button>
                     <button class="mode-button" id="replModeBtn">REPL</button>
                 </div>
                 <div class="theme-toggle">
@@ -110,20 +112,23 @@
         </div>
 
         <!-- REPL Mode Container -->
-        <div class="repl-container" id="replContainer" style="display: none;">
+        <div class="repl-container" id="replContainer" style="display: none">
             <div id="repl" role="presentation">
                 <code class="history">
-                    <div id="repl-intro-text">Enter an expression to evaluate, or a definition (like <span class="color-blue">x = 1</span>) to use later.</div>
+                    <div id="repl-intro-text">
+                        Enter an expression to evaluate, or a definition (like
+                        <span class="color-blue">x = 1</span>) to use later.
+                    </div>
                     <div id="history-text" aria-live="polite"></div>
                 </code>
                 <div id="repl-prompt" role="presentation">»</div>
-                <input 
-                    type="text"
-                    aria-label="Input Roc code here, then press Enter to submit it to the REPL" 
-                    id="source-input" 
-                    placeholder="Enter some Roc code here." 
+                <textarea
+                    aria-label="Input Roc code here, then press Enter to submit it to the REPL"
+                    id="source-input"
+                    placeholder="Enter some Roc code here."
                     spellcheck="false"
-                />
+                    style="height: 57px"
+                ></textarea>
             </div>
         </div>
 

@@ -353,6 +353,7 @@ class RocPlayground {
   async switchToReplMode(): Promise<void> {
     if (currentMode === "REPL") return;
     
+    debugLog("Switching to REPL mode...");
     currentMode = "REPL";
     this.updateModeButtons();
     
@@ -360,11 +361,22 @@ class RocPlayground {
     const editorContainer = document.getElementById("editorContainer");
     const replContainer = document.getElementById("replContainer");
     
-    if (editorContainer) editorContainer.style.display = "none";
-    if (replContainer) replContainer.style.display = "flex";
+    debugLog("Editor container:", editorContainer);
+    debugLog("REPL container:", replContainer);
+    
+    if (editorContainer) {
+      editorContainer.style.display = "none";
+      debugLog("Editor container hidden");
+    }
+    if (replContainer) {
+      replContainer.style.display = "flex";
+      debugLog("REPL container shown");
+    }
     
     // Initialize REPL
+    debugLog("About to initialize REPL...");
     await this.initializeRepl();
+    debugLog("REPL initialization completed");
   }
 
   updateModeButtons(): void {
@@ -381,24 +393,42 @@ class RocPlayground {
   }
 
   async initializeRepl(): Promise<void> {
-    if (!wasmInterface) return;
+    debugLog("initializeRepl called");
+    if (!wasmInterface) {
+      debugLog("WASM interface not available");
+      return;
+    }
     
     try {
+      // First, ensure we're in a clean state by calling RESET
+      debugLog("Resetting WASM state before REPL initialization...");
+      const resetResponse = await wasmInterface.reset();
+      debugLog("RESET response:", resetResponse);
+      
+      // Now initialize the REPL
+      debugLog("Calling wasmInterface.initRepl()...");
       const response = await wasmInterface.initRepl();
+      debugLog("WASM initRepl response:", response);
+      
       if (response.status === "SUCCESS") {
+        debugLog("REPL initialization successful, setting up interface");
         currentState = "REPL_ACTIVE";
         this.setupReplInterface();
+        debugLog("Setup complete");
       } else {
+        debugLog("REPL initialization failed:", response.message);
         this.showError(`Failed to initialize REPL: ${response.message}`);
       }
     } catch (error) {
       console.error("Error initializing REPL:", error);
+      debugLog("REPL initialization threw error:", error);
       this.showError(`REPL initialization failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
 
+
   setupReplInterface(): void {
-    const sourceInput = document.getElementById("source-input") as HTMLInputElement;
+    const sourceInput = document.getElementById("source-input") as HTMLTextAreaElement;
     
     if (!sourceInput) {
       debugLog("REPL source input element not found");
@@ -407,46 +437,62 @@ class RocPlayground {
     
     debugLog("Setting up REPL interface...");
     
-    // Clear any existing event listeners by cloning the element
-    const newSourceInput = sourceInput.cloneNode(true) as HTMLInputElement;
-    sourceInput.parentNode?.replaceChild(newSourceInput, sourceInput);
-    
     // Clear the input value
-    newSourceInput.value = "";
+    sourceInput.value = "";
     
-    // Setup input handling with bound methods
-    newSourceInput.addEventListener("keydown", (event) => {
+    // Add input event listener for auto-resize
+    sourceInput.addEventListener("input", () => {
+      this.resetSourceInputHeight();
+    });
+    
+    // Setup keydown handler
+    sourceInput.addEventListener("keydown", (event) => {
       this.handleReplInputKeydown(event);
     });
     
-    newSourceInput.addEventListener("keyup", (event) => {
+    // Setup keyup handler for history navigation
+    sourceInput.addEventListener("keyup", (event) => {
       this.handleReplInputKeyup(event);
     });
     
-    // Focus the input
-    newSourceInput.focus();
+    // Initial height reset and focus
+    this.resetSourceInputHeight();
+    sourceInput.focus();
     
     debugLog("REPL interface set up successfully");
   }
 
+  resetSourceInputHeight(): void {
+    const sourceInput = document.getElementById("source-input") as HTMLTextAreaElement;
+    if (sourceInput) {
+      sourceInput.style.height = sourceInput.scrollHeight + 2 + "px"; // +2 for the border
+    }
+  }
+
   handleReplInputKeydown(event: KeyboardEvent): void {
-    debugLog(`REPL keydown event: keyCode=${event.keyCode}, key="${event.key}"`);
+    const ENTER = 13;
+    const { keyCode } = event;
     
-    // Handle Enter key - for input elements, this should work much more reliably
-    if (event.key === "Enter" || event.keyCode === 13) {
-      debugLog("Processing REPL enter key - submitting input");
-      
-      event.preventDefault();
-      
-      const sourceInput = event.target as HTMLInputElement;
-      const inputText = sourceInput.value.trim();
-      
-      debugLog(`REPL input text: "${inputText}"`);
-      
-      sourceInput.value = "";
-      
-      if (inputText) {
-        this.processReplInput(inputText);
+    if (keyCode === ENTER) {
+      // Only submit on Enter without modifier keys (exactly like old implementation)
+      if (!event.shiftKey && !event.ctrlKey && !event.altKey) {
+        debugLog("Processing REPL enter key - submitting input");
+        
+        // Don't advance the caret to the next line
+        event.preventDefault();
+        
+        const sourceInput = event.target as HTMLTextAreaElement;
+        const inputText = sourceInput.value.trim();
+        
+        debugLog(`REPL input text: "${inputText}"`);
+        
+        // Clear the input and reset height (like old implementation)
+        sourceInput.value = "";
+        sourceInput.style.height = "";
+        
+        if (inputText) {
+          this.processReplInput(inputText);
+        }
       }
     }
   }
@@ -454,22 +500,21 @@ class RocPlayground {
   handleReplInputKeyup(event: KeyboardEvent): void {
     const UP = 38;
     const DOWN = 40;
+    const { keyCode } = event;
     
-    const sourceInput = event.target as HTMLInputElement;
+    const sourceInput = event.target as HTMLTextAreaElement;
     
-    switch (event.keyCode) {
+    switch (keyCode) {
       case UP:
-        if (replInputHistory.length === 0) return;
-        
+        if (replInputHistory.length === 0) {
+          return;
+        }
         if (replInputHistoryIndex === replInputHistory.length - 1) {
           replInputStash = sourceInput.value;
         }
-        
-        const historyValue = replInputHistory[replInputHistoryIndex];
-        if (historyValue !== undefined) {
-          sourceInput.value = historyValue;
-          sourceInput.selectionStart = sourceInput.value.length;
-          sourceInput.selectionEnd = sourceInput.value.length;
+        const upValue = replInputHistory[replInputHistoryIndex];
+        if (upValue !== undefined) {
+          this.setReplInput(upValue);
         }
         
         if (replInputHistoryIndex > 0) {
@@ -478,21 +523,32 @@ class RocPlayground {
         break;
         
       case DOWN:
-        if (replInputHistory.length === 0) return;
-        
+        if (replInputHistory.length === 0) {
+          return;
+        }
         if (replInputHistoryIndex === replInputHistory.length - 1) {
-          sourceInput.value = replInputStash;
+          this.setReplInput(replInputStash);
         } else {
           replInputHistoryIndex++;
-          const historyValue = replInputHistory[replInputHistoryIndex];
-          if (historyValue !== undefined) {
-            sourceInput.value = historyValue;
+          const downValue = replInputHistory[replInputHistoryIndex];
+          if (downValue !== undefined) {
+            this.setReplInput(downValue);
           }
         }
-        
-        sourceInput.selectionStart = sourceInput.value.length;
-        sourceInput.selectionEnd = sourceInput.value.length;
         break;
+        
+      default:
+        break;
+    }
+  }
+
+  setReplInput(value: string): void {
+    const sourceInput = document.getElementById("source-input") as HTMLTextAreaElement;
+    if (sourceInput) {
+      sourceInput.value = value;
+      sourceInput.selectionStart = value.length;
+      sourceInput.selectionEnd = value.length;
+      this.resetSourceInputHeight();
     }
   }
 
@@ -533,6 +589,11 @@ class RocPlayground {
         // Check for tutorial progression
         this.checkReplTutorialStep(input);
         
+      } else if (response.status === "INVALID_STATE") {
+        debugLog("REPL not properly initialized, attempting to reinitialize...");
+        this.addReplHistoryEntry("REPL not initialized. Reinitializing...", "error");
+        // Try to reinitialize and then retry the input
+        await this.initializeRepl();
       } else {
         const errorMsg = response.message || "Unknown REPL error";
         debugLog(`REPL error response: ${errorMsg}`);
