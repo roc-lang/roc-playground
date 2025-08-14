@@ -1824,14 +1824,13 @@ button:focus-visible,
     line-height: var(--leading-relaxed);
     color: var(--text-contrast);
     background: var(--dark-code-bg);
-    white-space: pre-wrap;
     word-wrap: break-word;
-    min-height: 0; /* Important for flex children to shrink */
+    min-height: 0;
     max-height: 100%;
 }
 
 #repl-intro-text {
-    margin-bottom: var(--space-6);
+    /*margin-bottom: var(--space-6);*/
     color: var(--text-secondary);
     opacity: 0.8;
 }
