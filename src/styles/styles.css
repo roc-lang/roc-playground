@@ -1758,3 +1758,161 @@ button:focus-visible,
         box-shadow: none;
     }
 }
+
+/* === MODE TOGGLE === */
+.mode-toggle {
+    display: flex;
+    background: var(--bg-base);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-base);
+    overflow: hidden;
+    margin-right: var(--space-4);
+}
+
+.mode-button {
+    background: transparent;
+    border: none;
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-button:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.mode-button.active {
+    background: var(--primary-1);
+    color: var(--primary-contrast);
+    font-weight: var(--font-medium);
+}
+
+/* === REPL STYLES === */
+.repl-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: var(--space-6);
+    background: var(--bg-secondary);
+}
+
+#repl {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.history {
+    flex: 1;
+    padding: var(--space-6);
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--text-contrast);
+    background: var(--dark-code-bg);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+#repl-intro-text {
+    margin-bottom: var(--space-6);
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.color-blue {
+    color: var(--blue-dark);
+}
+
+#history-text {
+    min-height: 0;
+}
+
+.repl-entry {
+    margin-bottom: var(--space-4);
+}
+
+.repl-input {
+    color: var(--text-contrast);
+    margin-bottom: var(--space-2);
+}
+
+.repl-output {
+    color: var(--green-dark);
+    margin-left: var(--space-4);
+}
+
+.repl-error {
+    color: var(--red-3);
+    margin-left: var(--space-4);
+}
+
+#repl-prompt {
+    padding: 0 var(--space-6);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--primary-1);
+    font-weight: bold;
+    background: var(--dark-code-bg);
+    border-top: 1px solid var(--border-subtle);
+}
+
+#source-input {
+    background: var(--dark-code-bg);
+    border: none;
+    color: var(--text-contrast);
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    padding: var(--space-4) var(--space-6);
+    outline: none;
+    width: 100%;
+    height: 60px;
+}
+
+#source-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+#source-input:focus {
+    background: var(--dark-code-bg);
+    box-shadow: inset 0 0 0 2px var(--primary-alpha-20);
+}
+
+/* REPL Tutorial Styles */
+.welcome-to-roc {
+    color: var(--primary-1);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg);
+}
+
+.btn-small {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--primary-1);
+    color: var(--primary-contrast);
+    text-decoration: none;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-base);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    transition: all 0.2s ease;
+    margin-left: var(--space-2);
+}
+
+.btn-small:hover {
+    background: var(--primary-2);
+    transform: translateY(-1px);
+}

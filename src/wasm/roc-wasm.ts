@@ -11,6 +11,7 @@ interface WasmMessage {
   identifier?: string;
   line?: number;
   ch?: number;
+  input?: string; // For REPL_STEP
 }
 
 interface Region {
@@ -36,6 +37,17 @@ interface Diagnostics {
   debug_counts: object;
 }
 
+interface ReplInfo {
+  compiler_version: string;
+  state: string;
+}
+
+interface ReplResult {
+  output: string;
+  type: "definition" | "expression" | "error";
+  compiler_available: boolean;
+}
+
 interface WasmResponse {
   status: "SUCCESS" | "ERROR" | "INVALID_STATE" | "INVALID_MESSAGE";
   message?: string;
@@ -47,6 +59,8 @@ interface WasmResponse {
     definition_region: Region;
     docs: string | null;
   } | null;
+  repl_info?: ReplInfo;
+  result?: ReplResult;
 }
 
 export interface WasmInterface {
@@ -65,6 +79,12 @@ export interface WasmInterface {
   sendMessage: (message: WasmMessage) => Promise<WasmResponse>;
   getDebugLog: () => string;
   clearDebugLog: () => void;
+  
+  // REPL functionality
+  initRepl: () => Promise<WasmResponse>;
+  replStep: (input: string) => Promise<WasmResponse>;
+  clearRepl: () => Promise<WasmResponse>;
+  reset: () => Promise<WasmResponse>;
 }
 
 interface QueuedMessage {
@@ -196,6 +216,12 @@ function createWasmInterface(): WasmInterface {
     sendMessage: sendMessageQueued,
     getDebugLog: () => wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "Debug log not available.",
     clearDebugLog: () => wasmModule?.clearDebugLog ? wasmModule.clearDebugLog() : undefined,
+    
+    // REPL functionality
+    initRepl: () => sendMessageQueued({ type: "INIT_REPL" }),
+    replStep: (input) => sendMessageQueued({ type: "REPL_STEP", input }),
+    clearRepl: () => sendMessageQueued({ type: "CLEAR_REPL" }),
+    reset: () => sendMessageQueued({ type: "RESET" }),
   };
 }
 

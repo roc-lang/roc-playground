@@ -4,7 +4,7 @@
  */
 
 // Global verbose flag for debug logging
-let verbose = false;
+let verbose = true;
 
 /**
  * Debug logging helper - only logs when verbose mode is enabled
@@ -38,9 +38,9 @@ export function initializeDebug(): void {
   (window as any).toggleVerboseLogging = toggleVerboseLogging;
 
   // Also expose the verbose flag for direct checking
-  Object.defineProperty(window, 'isVerboseEnabled', {
+  Object.defineProperty(window, "isVerboseEnabled", {
     get: () => verbose,
-    configurable: true
+    configurable: true,
   });
 }
 

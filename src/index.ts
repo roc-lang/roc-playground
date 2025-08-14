@@ -29,13 +29,21 @@ interface Diagnostic {
 
 // Global state variables (keeping same structure as app.js)
 let wasmInterface: WasmInterface | null = null;
-let currentState: "INIT" | "READY" | "LOADED" = "INIT";
+let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
 let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" = "PROBLEMS";
+let currentMode: "EDITOR" | "REPL" = "EDITOR";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
 
 let codeMirrorEditor: any = null;
+
+// REPL state variables
+let replHistory: Array<{input: string; output: string; type: "definition" | "expression" | "error"}> = [];
+let replInputHistory: string[] = [];
+let replInputHistoryIndex: number = 0;
+let replInputStash: string = "";
+let replTutorialStep: number = 0;
 
 // Examples data (from app.js)
 
@@ -85,11 +93,25 @@ class RocPlayground {
       this.setupAutoCompile();
       this.setupUrlSharing();
       this.setupResizeHandle();
+      this.setupModeToggle();
 
       // Restore from URL if present
       await this.restoreFromHash();
 
       currentState = "READY";
+      
+      // Check if REPL container is visible and initialize if needed
+      const replContainer = document.getElementById("replContainer");
+      debugLog(`REPL container found: ${!!replContainer}, display: ${replContainer?.style.display}`);
+      if (replContainer && replContainer.style.display === "flex") {
+        debugLog("REPL container is visible, switching to REPL mode");
+        currentMode = "REPL";
+        this.updateModeButtons();
+        await this.initializeRepl();
+      } else {
+        debugLog("REPL container not visible, staying in editor mode");
+      }
+      
       debugLog("Playground initialized successfully");
       console.log(
         "💡 Tip: Use toggleVerboseLogging() in console to enable detailed debug logging",
@@ -293,6 +315,288 @@ class RocPlayground {
 
   setupAutoCompile(): void {
     // Auto-compile is handled in handleCodeChange
+  }
+
+  setupModeToggle(): void {
+    const editorModeBtn = document.getElementById("editorModeBtn");
+    const replModeBtn = document.getElementById("replModeBtn");
+    
+    editorModeBtn?.addEventListener("click", () => {
+      this.switchToEditorMode();
+    });
+    
+    replModeBtn?.addEventListener("click", () => {
+      this.switchToReplMode();
+    });
+  }
+
+  async switchToEditorMode(): Promise<void> {
+    if (currentMode === "EDITOR") return;
+    
+    currentMode = "EDITOR";
+    this.updateModeButtons();
+    
+    // Hide REPL container and show editor container
+    const editorContainer = document.getElementById("editorContainer");
+    const replContainer = document.getElementById("replContainer");
+    
+    if (editorContainer) editorContainer.style.display = "flex";
+    if (replContainer) replContainer.style.display = "none";
+    
+    // Reset WASM to editor mode
+    if (wasmInterface) {
+      await wasmInterface.reset();
+      currentState = "READY";
+    }
+  }
+
+  async switchToReplMode(): Promise<void> {
+    if (currentMode === "REPL") return;
+    
+    currentMode = "REPL";
+    this.updateModeButtons();
+    
+    // Hide editor container and show REPL container
+    const editorContainer = document.getElementById("editorContainer");
+    const replContainer = document.getElementById("replContainer");
+    
+    if (editorContainer) editorContainer.style.display = "none";
+    if (replContainer) replContainer.style.display = "flex";
+    
+    // Initialize REPL
+    await this.initializeRepl();
+  }
+
+  updateModeButtons(): void {
+    const editorModeBtn = document.getElementById("editorModeBtn");
+    const replModeBtn = document.getElementById("replModeBtn");
+    
+    if (currentMode === "EDITOR") {
+      editorModeBtn?.classList.add("active");
+      replModeBtn?.classList.remove("active");
+    } else {
+      editorModeBtn?.classList.remove("active");
+      replModeBtn?.classList.add("active");
+    }
+  }
+
+  async initializeRepl(): Promise<void> {
+    if (!wasmInterface) return;
+    
+    try {
+      const response = await wasmInterface.initRepl();
+      if (response.status === "SUCCESS") {
+        currentState = "REPL_ACTIVE";
+        this.setupReplInterface();
+      } else {
+        this.showError(`Failed to initialize REPL: ${response.message}`);
+      }
+    } catch (error) {
+      console.error("Error initializing REPL:", error);
+      this.showError(`REPL initialization failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  setupReplInterface(): void {
+    const sourceInput = document.getElementById("source-input") as HTMLInputElement;
+    
+    if (!sourceInput) {
+      debugLog("REPL source input element not found");
+      return;
+    }
+    
+    debugLog("Setting up REPL interface...");
+    
+    // Clear any existing event listeners by cloning the element
+    const newSourceInput = sourceInput.cloneNode(true) as HTMLInputElement;
+    sourceInput.parentNode?.replaceChild(newSourceInput, sourceInput);
+    
+    // Clear the input value
+    newSourceInput.value = "";
+    
+    // Setup input handling with bound methods
+    newSourceInput.addEventListener("keydown", (event) => {
+      this.handleReplInputKeydown(event);
+    });
+    
+    newSourceInput.addEventListener("keyup", (event) => {
+      this.handleReplInputKeyup(event);
+    });
+    
+    // Focus the input
+    newSourceInput.focus();
+    
+    debugLog("REPL interface set up successfully");
+  }
+
+  handleReplInputKeydown(event: KeyboardEvent): void {
+    debugLog(`REPL keydown event: keyCode=${event.keyCode}, key="${event.key}"`);
+    
+    // Handle Enter key - for input elements, this should work much more reliably
+    if (event.key === "Enter" || event.keyCode === 13) {
+      debugLog("Processing REPL enter key - submitting input");
+      
+      event.preventDefault();
+      
+      const sourceInput = event.target as HTMLInputElement;
+      const inputText = sourceInput.value.trim();
+      
+      debugLog(`REPL input text: "${inputText}"`);
+      
+      sourceInput.value = "";
+      
+      if (inputText) {
+        this.processReplInput(inputText);
+      }
+    }
+  }
+
+  handleReplInputKeyup(event: KeyboardEvent): void {
+    const UP = 38;
+    const DOWN = 40;
+    
+    const sourceInput = event.target as HTMLInputElement;
+    
+    switch (event.keyCode) {
+      case UP:
+        if (replInputHistory.length === 0) return;
+        
+        if (replInputHistoryIndex === replInputHistory.length - 1) {
+          replInputStash = sourceInput.value;
+        }
+        
+        const historyValue = replInputHistory[replInputHistoryIndex];
+        if (historyValue !== undefined) {
+          sourceInput.value = historyValue;
+          sourceInput.selectionStart = sourceInput.value.length;
+          sourceInput.selectionEnd = sourceInput.value.length;
+        }
+        
+        if (replInputHistoryIndex > 0) {
+          replInputHistoryIndex--;
+        }
+        break;
+        
+      case DOWN:
+        if (replInputHistory.length === 0) return;
+        
+        if (replInputHistoryIndex === replInputHistory.length - 1) {
+          sourceInput.value = replInputStash;
+        } else {
+          replInputHistoryIndex++;
+          const historyValue = replInputHistory[replInputHistoryIndex];
+          if (historyValue !== undefined) {
+            sourceInput.value = historyValue;
+          }
+        }
+        
+        sourceInput.selectionStart = sourceInput.value.length;
+        sourceInput.selectionEnd = sourceInput.value.length;
+        break;
+    }
+  }
+
+
+  async processReplInput(input: string): Promise<void> {
+    if (!wasmInterface) {
+      debugLog("REPL input processing failed: WASM interface not available");
+      return;
+    }
+    
+    debugLog(`Processing REPL input: "${input}"`);
+    
+    // Add to input history
+    replInputHistory.push(input);
+    replInputHistoryIndex = replInputHistory.length - 1;
+    replInputStash = "";
+    
+    // Add input to history display
+    this.addReplHistoryEntry(input, "input");
+    
+    try {
+      debugLog("Sending REPL_STEP message to WASM...");
+      const response = await wasmInterface.replStep(input);
+      debugLog("REPL_STEP response:", response);
+      
+      if (response.status === "SUCCESS" && response.result) {
+        const result = response.result;
+        debugLog(`REPL result: type=${result.type}, output="${result.output}"`);
+        this.addReplHistoryEntry(result.output, result.type);
+        
+        // Add to internal history
+        replHistory.push({
+          input: input,
+          output: result.output,
+          type: result.type
+        });
+        
+        // Check for tutorial progression
+        this.checkReplTutorialStep(input);
+        
+      } else {
+        const errorMsg = response.message || "Unknown REPL error";
+        debugLog(`REPL error response: ${errorMsg}`);
+        this.addReplHistoryEntry(errorMsg, "error");
+      }
+    } catch (error) {
+      debugLog("REPL step error:", error);
+      const errorMsg = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+      this.addReplHistoryEntry(errorMsg, "error");
+    }
+  }
+
+  addReplHistoryEntry(text: string, type: "input" | "definition" | "expression" | "error"): void {
+    const historyText = document.getElementById("history-text");
+    if (!historyText) return;
+    
+    const entry = document.createElement("div");
+    entry.className = "repl-entry";
+    
+    if (type === "input") {
+      entry.innerHTML = `<div class="repl-input">» ${this.escapeHtml(text)}</div>`;
+    } else {
+      const className = type === "error" ? "repl-error" : "repl-output";
+      entry.innerHTML = `<div class="${className}">${this.escapeHtml(text)}</div>`;
+    }
+    
+    historyText.appendChild(entry);
+    
+    // Scroll to bottom
+    historyText.scrollTop = historyText.scrollHeight;
+  }
+
+  checkReplTutorialStep(input: string): void {
+    // Based on the old REPL tutorial steps from the original implementation
+    const tutorialSteps = [
+      {
+        match: (input: string) => input.replace(/ /g, "") === "0.1+0.2",
+        show: '<p>Was this the answer you expected? (If so, try this in other programming languages and see what their answers are.)</p><p>Roc has a <a href="/builtins/Num#Dec">decimal</a> type as well as <a href="/builtins/Num#F64">floating-point</a> for when performance is more important than decimal precision.</p><p>Next, enter <code>name = "(put your name here)"</code></p>',
+      },
+      {
+        match: (input: string) => input.replace(/ /g, "").match(/^name="/i),
+        show: '<p>This created a new <a href="https://www.roc-lang.org/tutorial#defs">definition</a>&mdash;<code>name</code> is now defined to be equal to the <a href="/tutorial#strings-and-numbers">string</a> you entered.</p><p>Try using this definition by entering <code>"Hi, ${name}!"</code></p>',
+      },
+      {
+        match: (input: string) => input.match(/^"[^\$]+\$\{name\}/i),
+        show: `<p>Nicely done! This is an example of <a href="/tutorial#string-interpolation">string interpolation</a>, which replaces part of a string with whatever you put inside the parentheses after a <code>$</code>.</p><p>Now that you've written a few <a href="/tutorial#naming-things">expressions</a>, you can either continue exploring in this REPL, or move on to the <a href="/tutorial">tutorial</a> to learn how to make full programs.<p><p><span class='welcome-to-roc'>Welcome to Roc!</span> <a href='/tutorial' class='btn-small'>Start Tutorial</a></p>`,
+      },
+    ];
+    
+    if (replTutorialStep < tutorialSteps.length) {
+      const step = tutorialSteps[replTutorialStep];
+      if (step && step.match(input)) {
+        // Add tutorial content to history
+        const historyText = document.getElementById("history-text");
+        if (historyText) {
+          const tutorialEntry = document.createElement("div");
+          tutorialEntry.className = "repl-entry";
+          tutorialEntry.innerHTML = `<div class="repl-tutorial">${step.show}</div>`;
+          historyText.appendChild(tutorialEntry);
+          historyText.scrollTop = historyText.scrollHeight;
+        }
+        replTutorialStep++;
+      }
+    }
   }
 
   showCurrentView(): void {
