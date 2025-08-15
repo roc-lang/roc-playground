@@ -31,6 +31,14 @@
                 </h1>
             </div>
             <div class="header-status">
+                <div class="mode-toggle">
+                    <button class="mode-button active" id="replModeBtn">
+                        REPL
+                    </button>
+                    <button class="mode-button" id="editorModeBtn">
+                        Editor
+                    </button>
+                </div>
                 <div class="theme-toggle">
                     <span class="theme-label">Theme</span>
                     <div
@@ -46,10 +54,10 @@
             </div>
         </div>
 
-        <div class="main-container">
+        <!-- Editor Mode Container -->
+        <div class="main-container" id="editorContainer" style="display: none">
             <div class="editor-container">
                 <div class="editor-header">
-                    <!-- <div class="editor-title"></div> NOT USED -->
                     <!-- Diagnostic summary will be inserted here by JavaScript -->
                 </div>
                 <div class="editor" id="editor"></div>
@@ -59,7 +67,6 @@
 
             <div class="output-container">
                 <div class="output-header">
-                    <!-- <div class="output-title">Output</div> -->
                     <div class="stage-buttons">
                         <button
                             class="stage-button active"
@@ -101,6 +108,27 @@
                 <div class="output-content" id="outputContent">
                     <div class="loading">Initializing WASM module...</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- REPL Mode Container -->
+        <div class="repl-container" id="replContainer" style="display: flex">
+            <div id="repl" role="presentation">
+                <code class="history">
+                    <div id="repl-intro-text">
+                        Enter an expression to evaluate, or a definition (like
+                        <span class="color-blue">x = 1</span>) to use later.
+                    </div>
+                    <div id="history-text" aria-live="polite"></div>
+                </code>
+                <div id="repl-prompt" role="presentation">»</div>
+                <textarea
+                    aria-label="Input Roc code here, then press Enter to submit it to the REPL"
+                    id="source-input"
+                    placeholder="Enter some Roc code here."
+                    spellcheck="false"
+                    style="height: 57px"
+                ></textarea>
             </div>
         </div>
 

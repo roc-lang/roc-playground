@@ -38,9 +38,9 @@ export function initializeDebug(): void {
   (window as any).toggleVerboseLogging = toggleVerboseLogging;
 
   // Also expose the verbose flag for direct checking
-  Object.defineProperty(window, 'isVerboseEnabled', {
+  Object.defineProperty(window, "isVerboseEnabled", {
     get: () => verbose,
-    configurable: true
+    configurable: true,
   });
 }
 
