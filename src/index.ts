@@ -9,6 +9,7 @@ import { EditorView } from "@codemirror/view";
 import { createTypeHintTooltip } from "./editor/type-hints";
 import { initializeWasm, WasmInterface } from "./wasm/roc-wasm";
 import { debugLog, initializeDebug } from "./utils/debug";
+import { HistoryManager } from "./repl-history";
 import "./styles/styles.css";
 
 // Interfaces
@@ -26,20 +27,208 @@ interface Diagnostic {
   code?: string;
 }
 
+const AppModeType = {
+  EDITOR: "EDITOR",
+  REPL: "REPL",
+} as const;
 
-// Global state variables (keeping same structure as app.js)
+const InitStateType = {
+  INIT: "INIT",
+  WASM_LOADING: "WASM_LOADING",
+  WASM_READY: "WASM_READY",
+  EDITOR_READY: "EDITOR_READY",
+  REPL_INITIALIZING: "REPL_INITIALIZING",
+  REPL_READY: "REPL_READY",
+  ERROR: "ERROR",
+} as const;
+
+const IntentType = {
+  DEFAULT_REPL: "DEFAULT_REPL",
+  LOAD_URL_CONTENT: "LOAD_URL_CONTENT",
+  LOAD_EXAMPLE: "LOAD_EXAMPLE",
+} as const;
+
+type AppMode =
+  | { type: typeof AppModeType.EDITOR; content?: string }
+  | { type: typeof AppModeType.REPL };
+
+type InitState =
+  | { type: typeof InitStateType.INIT }
+  | { type: typeof InitStateType.WASM_LOADING }
+  | { type: typeof InitStateType.WASM_READY }
+  | { type: typeof InitStateType.EDITOR_READY }
+  | { type: typeof InitStateType.REPL_INITIALIZING }
+  | { type: typeof InitStateType.REPL_READY }
+  | { type: typeof InitStateType.ERROR; message: string };
+
+type InitIntent =
+  | { type: typeof IntentType.DEFAULT_REPL }
+  | { type: typeof IntentType.LOAD_URL_CONTENT; content: string }
+  | { type: typeof IntentType.LOAD_EXAMPLE; exampleIndex: number };
+
+interface AppState {
+  initState: InitState;
+  mode: AppMode;
+  intent: InitIntent;
+}
+
+const isMode = {
+  editor: (
+    mode: AppMode,
+  ): mode is { type: typeof AppModeType.EDITOR; content?: string } =>
+    mode.type === AppModeType.EDITOR,
+  repl: (mode: AppMode): mode is { type: typeof AppModeType.REPL } =>
+    mode.type === AppModeType.REPL,
+};
+
+const isInitState = {
+  init: (state: InitState): state is { type: typeof InitStateType.INIT } =>
+    state.type === InitStateType.INIT,
+  wasmLoading: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.WASM_LOADING } =>
+    state.type === InitStateType.WASM_LOADING,
+  wasmReady: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.WASM_READY } =>
+    state.type === InitStateType.WASM_READY,
+  editorReady: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.EDITOR_READY } =>
+    state.type === InitStateType.EDITOR_READY,
+  replInitializing: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.REPL_INITIALIZING } =>
+    state.type === InitStateType.REPL_INITIALIZING,
+  replReady: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.REPL_READY } =>
+    state.type === InitStateType.REPL_READY,
+  error: (
+    state: InitState,
+  ): state is { type: typeof InitStateType.ERROR; message: string } =>
+    state.type === InitStateType.ERROR,
+};
+
+const isIntent = {
+  defaultRepl: (
+    intent: InitIntent,
+  ): intent is { type: typeof IntentType.DEFAULT_REPL } =>
+    intent.type === IntentType.DEFAULT_REPL,
+  loadUrlContent: (
+    intent: InitIntent,
+  ): intent is { type: typeof IntentType.LOAD_URL_CONTENT; content: string } =>
+    intent.type === IntentType.LOAD_URL_CONTENT,
+  loadExample: (
+    intent: InitIntent,
+  ): intent is { type: typeof IntentType.LOAD_EXAMPLE; exampleIndex: number } =>
+    intent.type === IntentType.LOAD_EXAMPLE,
+};
+
+// Global state variables
 let wasmInterface: WasmInterface | null = null;
-let currentState: "INIT" | "READY" | "LOADED" = "INIT";
+let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
 let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" = "PROBLEMS";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
 
+let appState: AppState = {
+  initState: { type: InitStateType.INIT },
+  mode: { type: AppModeType.REPL },
+  intent: { type: IntentType.DEFAULT_REPL },
+};
+
 let codeMirrorEditor: any = null;
 
-// Examples data (from app.js)
+let replHistory: Array<{
+  input: string;
+  output: string;
+  type: "definition" | "expression" | "error";
+}> = [];
 
-// Main playground class
+const historyManager = new HistoryManager({
+  maxSize: 500,
+  deduplicateConsecutive: true,
+});
+
+function updateAppState(updates: Partial<AppState>): void {
+  appState = { ...appState, ...updates };
+  debugLog("App state updated:", appState);
+  updateLoadingUI();
+}
+
+function updateLoadingUI(): void {
+  if (isInitState.replInitializing(appState.initState)) {
+    showReplLoadingSpinner();
+  } else {
+    hideReplLoadingSpinner();
+  }
+}
+
+function showReplLoadingSpinner(): void {
+  const replContainer = document.getElementById("replContainer");
+  if (!replContainer) return;
+
+  // Remove existing spinner if present
+  const existingSpinner = replContainer.querySelector(".repl-loading-spinner");
+  if (existingSpinner) return;
+
+  // Create spinner overlay
+  const spinner = document.createElement("div");
+  spinner.className = "repl-loading-spinner";
+  spinner.innerHTML = `
+    <div class="spinner-overlay">
+      <div class="spinner"></div>
+      <div class="spinner-text">Initializing REPL...</div>
+    </div>
+  `;
+
+  replContainer.appendChild(spinner);
+}
+
+function hideReplLoadingSpinner(): void {
+  const existingSpinner = document.querySelector(".repl-loading-spinner");
+  if (existingSpinner) {
+    existingSpinner.remove();
+  }
+}
+
+function determineInitIntent(): InitIntent {
+  const hash = window.location.hash.slice(1);
+  if (hash && (hash.startsWith("content=") || hash.length > 0)) {
+    try {
+      let b64 = hash;
+      if (hash.startsWith("content=")) {
+        b64 = hash.slice("content=".length);
+      }
+      // We don't decode here, just detect that content exists
+      return { type: IntentType.LOAD_URL_CONTENT, content: b64 };
+    } catch {
+      return { type: IntentType.DEFAULT_REPL };
+    }
+  }
+  return { type: IntentType.DEFAULT_REPL };
+}
+
+async function executeIntent(
+  intent: InitIntent,
+  playground: RocPlayground,
+): Promise<void> {
+  if (isIntent.defaultRepl(intent)) {
+    updateAppState({ mode: { type: AppModeType.REPL } });
+    await playground.ensureReplMode();
+  } else if (isIntent.loadUrlContent(intent)) {
+    updateAppState({ mode: { type: AppModeType.EDITOR } });
+    await playground.ensureEditorMode();
+    await playground.restoreFromHash();
+  } else if (isIntent.loadExample(intent)) {
+    updateAppState({ mode: { type: AppModeType.EDITOR } });
+    await playground.ensureEditorMode();
+    await playground.loadExampleInternal(intent.exampleIndex);
+  }
+}
+
 class RocPlayground {
   private compileTimeout: ReturnType<typeof setTimeout> | null = null;
   private compileStartTime: number | null = null;
@@ -67,12 +256,19 @@ class RocPlayground {
   async initialize(): Promise<void> {
     try {
       debugLog("Initializing Roc Playground...");
+      updateAppState({ initState: { type: InitStateType.INIT } });
 
       // Initialize debug utilities
       initializeDebug();
 
+      // Determine what we plan to do before starting
+      const intent = determineInitIntent();
+      updateAppState({ intent });
+
       // Initialize WASM first
+      updateAppState({ initState: { type: InitStateType.WASM_LOADING } });
       await this.initializeWasm();
+      updateAppState({ initState: { type: InitStateType.WASM_READY } });
 
       // Initialize theme before editor setup
       this.initTheme();
@@ -85,11 +281,13 @@ class RocPlayground {
       this.setupAutoCompile();
       this.setupUrlSharing();
       this.setupResizeHandle();
-
-      // Restore from URL if present
-      await this.restoreFromHash();
+      this.setupModeToggle();
 
       currentState = "READY";
+
+      // Execute the determined intent
+      await executeIntent(intent, this);
+
       debugLog("Playground initialized successfully");
       console.log(
         "💡 Tip: Use toggleVerboseLogging() in console to enable detailed debug logging",
@@ -97,6 +295,7 @@ class RocPlayground {
     } catch (error) {
       console.error("Failed to initialize playground:", error);
       const message = error instanceof Error ? error.message : String(error);
+      updateAppState({ initState: { type: InitStateType.ERROR, message } });
       this.showError(`Failed to initialize playground: ${message}`);
     }
   }
@@ -136,8 +335,10 @@ class RocPlayground {
     const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
 
     // Load Basic Types example as default content
-    const basicTypesExample = examples.find(ex => ex.name === "Basic Types");
-    const initialContent = basicTypesExample ? basicTypesExample.code : "# Select an example or write Roc code here...";
+    const basicTypesExample = examples.find((ex) => ex.name === "Basic Types");
+    const initialContent = basicTypesExample
+      ? basicTypesExample.code
+      : "# Select an example or write Roc code here...";
 
     codeMirrorEditor = createFullEditor(editorContainer, {
       content: initialContent,
@@ -273,6 +474,15 @@ class RocPlayground {
   }
 
   async loadExample(index: number): Promise<void> {
+    const intent: InitIntent = {
+      type: IntentType.LOAD_EXAMPLE,
+      exampleIndex: index,
+    };
+    updateAppState({ intent });
+    await executeIntent(intent, this);
+  }
+
+  async loadExampleInternal(index: number): Promise<void> {
     const example = examples[index];
     if (!example) return;
 
@@ -293,6 +503,785 @@ class RocPlayground {
 
   setupAutoCompile(): void {
     // Auto-compile is handled in handleCodeChange
+  }
+
+  setupModeToggle(): void {
+    const editorModeBtn = document.getElementById("editorModeBtn");
+    const replModeBtn = document.getElementById("replModeBtn");
+
+    editorModeBtn?.addEventListener("click", () => {
+      updateAppState({ mode: { type: AppModeType.EDITOR } });
+      this.ensureEditorMode();
+    });
+
+    replModeBtn?.addEventListener("click", () => {
+      updateAppState({ mode: { type: AppModeType.REPL } });
+      this.ensureReplMode();
+    });
+  }
+
+  async ensureEditorMode(): Promise<void> {
+    if (isMode.editor(appState.mode)) {
+      await this.switchToEditorMode();
+      updateAppState({ initState: { type: InitStateType.EDITOR_READY } });
+    }
+  }
+
+  async ensureReplMode(): Promise<void> {
+    if (isMode.repl(appState.mode)) {
+      updateAppState({ initState: { type: InitStateType.REPL_INITIALIZING } });
+      await this.switchToReplMode();
+      updateAppState({ initState: { type: InitStateType.REPL_READY } });
+    }
+  }
+
+  async switchToEditorMode(): Promise<void> {
+    debugLog("Switching to Editor mode...");
+
+    // Update UI first
+    const editorContainer = document.getElementById("editorContainer");
+    const replContainer = document.getElementById("replContainer");
+
+    if (editorContainer) editorContainer.style.display = "flex";
+    if (replContainer) replContainer.style.display = "none";
+
+    this.updateModeButtons("EDITOR");
+
+    // Reset WASM to editor mode
+    if (wasmInterface) {
+      await wasmInterface.reset();
+      currentState = "READY";
+    }
+
+    debugLog("Editor mode activated");
+  }
+
+  async switchToReplMode(): Promise<void> {
+    debugLog("Switching to REPL mode...");
+
+    // Clear URL content and reset editor
+    this.clearUrlContent();
+    this.resetEditorContent();
+
+    // Update UI
+    const editorContainer = document.getElementById("editorContainer");
+    const replContainer = document.getElementById("replContainer");
+
+    if (editorContainer) {
+      editorContainer.style.display = "none";
+      debugLog("Editor container hidden");
+    }
+    if (replContainer) {
+      replContainer.style.display = "flex";
+      debugLog("REPL container shown");
+    }
+
+    this.updateModeButtons("REPL");
+
+    // Initialize REPL
+    debugLog("About to initialize REPL...");
+    await this.initializeRepl();
+    debugLog("REPL initialization completed");
+  }
+
+  updateModeButtons(mode?: "EDITOR" | "REPL"): void {
+    const editorModeBtn = document.getElementById("editorModeBtn");
+    const replModeBtn = document.getElementById("replModeBtn");
+
+    const currentModeType = mode || appState.mode.type;
+
+    if (currentModeType === "EDITOR") {
+      editorModeBtn?.classList.add("active");
+      replModeBtn?.classList.remove("active");
+    } else {
+      editorModeBtn?.classList.remove("active");
+      replModeBtn?.classList.add("active");
+    }
+  }
+
+  async initializeRepl(): Promise<void> {
+    debugLog("initializeRepl called");
+    if (!wasmInterface) {
+      debugLog("WASM interface not available");
+      updateAppState({
+        initState: { type: "ERROR", message: "WASM interface not available" },
+      });
+      return;
+    }
+
+    try {
+      // First, ensure we're in a clean state by calling RESET
+      debugLog("Resetting WASM state before REPL initialization...");
+      const resetResponse = await wasmInterface.reset();
+      debugLog("RESET response:", resetResponse);
+
+      // Now initialize the REPL
+      debugLog("Calling wasmInterface.initRepl()...");
+      const response = await wasmInterface.initRepl();
+      debugLog("WASM initRepl response:", response);
+
+      if (response.status === "SUCCESS") {
+        debugLog("REPL initialization successful, setting up interface");
+        currentState = "REPL_ACTIVE";
+        this.setupReplInterface();
+        debugLog("Setup complete");
+      } else {
+        debugLog("REPL initialization failed:", response.message);
+        updateAppState({
+          initState: {
+            type: "ERROR",
+            message: response.message || "REPL initialization failed",
+          },
+        });
+        this.showError(`Failed to initialize REPL: ${response.message}`);
+      }
+    } catch (error) {
+      console.error("Error initializing REPL:", error);
+      debugLog("REPL initialization threw error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      updateAppState({ initState: { type: "ERROR", message: errorMessage } });
+      this.showError(`REPL initialization failed: ${errorMessage}`);
+    }
+  }
+
+  setupReplInterface(): void {
+    const sourceInput = document.getElementById(
+      "source-input",
+    ) as HTMLTextAreaElement;
+
+    if (!sourceInput) {
+      debugLog("REPL source input element not found");
+      return;
+    }
+
+    debugLog("Setting up REPL interface...");
+
+    // Clear the input value
+    sourceInput.value = "";
+
+    // Remove any existing event listeners first
+    if (this.boundHandleReplInputKeyup) {
+      sourceInput.removeEventListener("keyup", this.boundHandleReplInputKeyup);
+    }
+    if (this.boundHandleReplInputKeydown) {
+      sourceInput.removeEventListener(
+        "keydown",
+        this.boundHandleReplInputKeydown,
+      );
+    }
+
+    // Create bound functions
+    this.boundHandleReplInputKeyup = (event: KeyboardEvent) => {
+      this.handleReplInputKeyup(event);
+    };
+    this.boundHandleReplInputKeydown = (event: KeyboardEvent) => {
+      this.handleReplInputKeydown(event);
+    };
+
+    // Setup keydown handler for arrow keys (to prevent default)
+    sourceInput.addEventListener("keydown", this.boundHandleReplInputKeydown);
+
+    // Setup keyup handler for ENTER key
+    sourceInput.addEventListener("keyup", this.boundHandleReplInputKeyup);
+
+    // Focus the input
+    sourceInput.focus();
+
+    debugLog("REPL interface set up successfully");
+  }
+
+  resetSourceInputHeight(): void {
+    // Function disabled - was causing undesired auto-resize behavior
+    // Keeping function stub to avoid breaking other code that might call it
+  }
+
+  private boundHandleReplInputKeyup: ((event: KeyboardEvent) => void) | null =
+    null;
+  private boundHandleReplInputKeydown: ((event: KeyboardEvent) => void) | null =
+    null;
+
+  handleReplInputKeydown(event: KeyboardEvent): void {
+    const UP = 38;
+    const DOWN = 40;
+    const { keyCode } = event;
+
+    switch (keyCode) {
+      case UP:
+        event.preventDefault(); // Prevent cursor movement
+        this.navigateHistoryBackward();
+        break;
+
+      case DOWN:
+        event.preventDefault(); // Prevent cursor movement
+        this.navigateHistoryForward();
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  handleReplInputKeyup(event: KeyboardEvent): void {
+    const ENTER = 13;
+    const { keyCode } = event;
+
+    switch (keyCode) {
+      case ENTER:
+        debugLog("Processing REPL enter key - submitting input");
+
+        // Don't advance the caret to the next line
+        event.preventDefault();
+
+        const sourceInput = event.target as HTMLTextAreaElement;
+        const inputText = sourceInput.value.trim();
+
+        debugLog(`REPL input text: "${inputText}"`);
+
+        // Clear the input and reset height (like old implementation)
+        sourceInput.value = "";
+        sourceInput.style.height = "";
+
+        if (inputText) {
+          this.processReplInput(inputText, true);
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  private addToHistory(input: string): void {
+    // Use the robust history manager
+    // console.log('[REPL] Adding to history:', input);
+    historyManager.add(input);
+  }
+
+  private navigateHistoryBackward(): void {
+    const sourceInput = document.getElementById(
+      "source-input",
+    ) as HTMLTextAreaElement;
+    if (!sourceInput) return;
+
+    const currentInputValue = sourceInput.value;
+    // console.log('[REPL] UP pressed, current input:', currentInputValue);
+    const historyCommand = historyManager.navigateBackward(currentInputValue);
+
+    if (historyCommand !== null) {
+      // console.log('[REPL] Setting input to:', historyCommand);
+      this.setReplInput(historyCommand);
+    } else {
+      // console.log('[REPL] No history command returned');
+    }
+    // If null, we're at the oldest entry or have no history
+  }
+
+  private navigateHistoryForward(): void {
+    const historyCommand = historyManager.navigateForward();
+
+    if (historyCommand !== null) {
+      this.setReplInput(historyCommand);
+    }
+    // If null, we're not in history navigation mode
+  }
+
+  setReplInput(value: string): void {
+    const sourceInput = document.getElementById(
+      "source-input",
+    ) as HTMLTextAreaElement;
+    if (sourceInput) {
+      sourceInput.value = value;
+      sourceInput.selectionStart = value.length;
+      sourceInput.selectionEnd = value.length;
+      // Removed auto-resize call
+    }
+  }
+
+  async processReplInput(
+    input: string,
+    addToHistory: boolean = true,
+  ): Promise<void> {
+    if (!wasmInterface) {
+      debugLog("REPL input processing failed: WASM interface not available");
+      return;
+    }
+
+    debugLog(`Processing REPL input: "${input}"`);
+
+    // Only add to history on first call, not on retries
+    if (addToHistory) {
+      // Hide intro text on first input
+      const introText = document.getElementById("repl-intro-text");
+      if (introText) {
+        introText.style.display = "none";
+      }
+
+      // Add to input history (but skip commands starting with :)
+      if (!input.startsWith(":")) {
+        this.addToHistory(input);
+      }
+
+      // Add input to history display
+      this.addReplHistoryEntry(input, "input");
+    }
+
+    try {
+      // Handle client-side REPL commands
+      if (input.startsWith(":")) {
+        await this.handleReplCommand(input);
+        return;
+      }
+
+      debugLog("Sending REPL_STEP message to WASM...");
+      const response = await wasmInterface.replStep(input);
+      debugLog("REPL_STEP response:", response);
+
+      if (response.status === "SUCCESS" && response.result) {
+        const result = response.result;
+        debugLog(`REPL result: type=${result.type}, output="${result.output}"`);
+
+        // Check for crash errors that require REPL reset
+        const isCrash =
+          result.type === "error" &&
+          (result.output.includes("error.Crash") ||
+            result.output.includes("panic!") ||
+            result.output.includes("internal compiler error") ||
+            result.output.includes("REPL crashed"));
+
+        // Pass error stage and details for enhanced error display
+        this.addReplHistoryEntry(
+          result.output,
+          result.type,
+          result.error_stage,
+          result.error_details,
+        );
+
+        // Add to internal history
+        replHistory.push({
+          input: input,
+          output: result.output,
+          type: result.type,
+        });
+
+        // If REPL crashed, automatically reset it
+        if (isCrash) {
+          await this.handleReplCrash();
+        }
+      } else if (response.status === "INVALID_STATE") {
+        debugLog(
+          "REPL not properly initialized, attempting to reinitialize...",
+        );
+
+        // Show loading spinner instead of error message
+        updateAppState({ initState: { type: "REPL_INITIALIZING" } });
+
+        // Try to reinitialize
+        await this.initializeRepl();
+
+        // If successful, retry the input
+        if (appState.initState.type !== "ERROR") {
+          updateAppState({ initState: { type: "REPL_READY" } });
+          // Retry the original input without adding to history again
+          await this.processReplInput(input, false);
+        }
+      } else {
+        const errorMsg = response.message || "Unknown REPL error";
+        debugLog(`REPL error response: ${errorMsg}`);
+        this.addReplHistoryEntry(errorMsg, "error");
+      }
+    } catch (error) {
+      debugLog("REPL step error:", error);
+      const errorMsg = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+      this.addReplHistoryEntry(errorMsg, "error");
+    }
+  }
+
+  addReplHistoryEntry(
+    text: string,
+    type: "input" | "definition" | "expression" | "error",
+    errorStage?: string,
+    errorDetails?: string,
+    allowHtml: boolean = false,
+  ): void {
+    const historyText = document.getElementById("history-text");
+    if (!historyText) return;
+
+    const entry = document.createElement("div");
+    entry.className = "repl-entry";
+
+    if (type === "input") {
+      const displayText = allowHtml ? text : this.escapeHtml(text);
+      entry.innerHTML = `<div class="repl-input">
+        <span class="repl-prompt">»</span>
+        <span class="repl-input-text">${displayText}</span>
+      </div>`;
+    } else if (type === "error") {
+      // Enhanced error display with stage information
+      const stageClass = errorStage ? errorStage : "";
+      const stageName = errorStage
+        ? this.getErrorStageName(errorStage)
+        : "Error";
+
+      const displayText = allowHtml ? text : this.escapeHtml(text);
+      const displayDetails = allowHtml
+        ? errorDetails
+        : this.escapeHtml(errorDetails || "");
+      entry.innerHTML = `<div class="repl-error ${stageClass}">
+        <div class="repl-error-header">
+          <span class="repl-error-icon">⚠</span>
+          <span class="repl-error-stage">${stageName}</span>
+        </div>
+        <div class="repl-error-message">${displayText}</div>
+        ${errorDetails ? `<div class="repl-error-details">${displayDetails}</div>` : ""}
+      </div>`;
+    } else {
+      // Success outputs (definition/expression)
+      // Double-check that error text doesn't accidentally get here
+      if (text.toLowerCase().includes("error")) {
+        // Safety fallback - treat as error even if type suggests otherwise
+        const displayText = allowHtml ? text : this.escapeHtml(text);
+        entry.innerHTML = `<div class="repl-error">
+          <div class="repl-error-header">
+            <span class="repl-error-icon">⚠</span>
+            <span class="repl-error-stage">Error</span>
+          </div>
+          <div class="repl-error-message">${displayText}</div>
+        </div>`;
+      } else {
+        const variant = type === "definition" ? "definition" : "expression";
+        const displayText = allowHtml ? text : this.escapeHtml(text);
+
+        entry.innerHTML = `<div class="repl-output ${variant}">
+          <span class="repl-text">${displayText}</span>
+        </div>`;
+      }
+    }
+
+    historyText.appendChild(entry);
+
+    // Scroll to bottom - try multiple approaches for reliability
+    this.scrollReplToBottom();
+  }
+
+  private scrollReplToBottom(): void {
+    // Try multiple approaches to ensure scrolling works reliably
+    requestAnimationFrame(() => {
+      const historyText = document.getElementById("history-text");
+      const replElement = document.getElementById("repl");
+      const replContainer = document.getElementById("replContainer");
+
+      // Try scrolling the history text element
+      if (historyText) {
+        historyText.scrollTop = historyText.scrollHeight;
+      }
+
+      // Try scrolling the main repl element
+      if (replElement) {
+        replElement.scrollTop = replElement.scrollHeight;
+      }
+
+      // Try scrolling the container
+      if (replContainer) {
+        replContainer.scrollTop = replContainer.scrollHeight;
+      }
+
+      // Use scrollIntoView as a fallback to ensure the last entry is visible
+      const lastEntry = historyText?.lastElementChild;
+      if (lastEntry) {
+        lastEntry.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+          inline: "nearest",
+        });
+      }
+    });
+  }
+
+  private async handleReplCommand(command: string): Promise<void> {
+    const parts = command.split(/\s+/);
+    if (parts.length === 0 || !parts[0]) {
+      return;
+    }
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1).join(" ");
+
+    switch (cmd) {
+      case ":clear":
+        this.clearReplHistory();
+        break;
+
+      case ":help":
+        this.showReplHelp();
+        break;
+
+      case ":reset":
+        await this.resetRepl();
+        break;
+
+      case ":history":
+        this.showReplCommandHistory();
+        break;
+
+      case ":search":
+        this.searchReplHistory(args);
+        break;
+
+      case ":stats":
+        this.showHistoryStats();
+        break;
+
+      case ":export":
+        this.exportHistory();
+        break;
+
+      case ":examples":
+        this.switchToExamples();
+        break;
+
+      case ":theme":
+        this.toggleTheme();
+        this.addReplHistoryEntry("Theme toggled", "definition");
+        break;
+
+      default:
+        this.addReplHistoryEntry(
+          `Unknown command: ${command}. Type :help for available commands.`,
+          "error",
+        );
+    }
+  }
+
+  private clearReplHistory(): void {
+    const historyText = document.getElementById("history-text");
+    if (historyText) {
+      historyText.innerHTML = "";
+    }
+    historyManager.clear();
+  }
+
+  private showReplHelp(): void {
+    const helpText =
+      `Available REPL commands:<br><br>` +
+      `  :clear         - Clear the REPL display<br>` +
+      `  :help          - Show this help message<br>` +
+      `  :reset         - Reset REPL state (clear variables)<br>` +
+      `  :history       - Show command history<br>` +
+      `  :search [term] - Search command history<br>` +
+      `  :stats         - Show history statistics<br>` +
+      `  :export        - Export history to clipboard<br>` +
+      `  :examples      - Switch to Editor mode with examples<br>` +
+      `  :theme         - Toggle light/dark theme<br><br>` +
+      `Navigation:<br>` +
+      `  ↑ (Up Arrow)   - Navigate to previous command<br>` +
+      `  ↓ (Down Arrow) - Navigate to next command<br><br>` +
+      `Enter expressions to evaluate or definitions (like x = 1) to use later.`;
+
+    this.addReplHistoryEntry(
+      helpText,
+      "definition",
+      undefined,
+      undefined,
+      true,
+    );
+  }
+
+  private async resetRepl(): Promise<void> {
+    this.addReplHistoryEntry("Resetting REPL state...", "definition");
+
+    // Clear history using the history manager
+    historyManager.clear();
+
+    updateAppState({ initState: { type: InitStateType.REPL_INITIALIZING } });
+    await this.initializeRepl();
+    updateAppState({ initState: { type: InitStateType.REPL_READY } });
+    this.addReplHistoryEntry("REPL state reset", "definition");
+  }
+
+  private showReplCommandHistory(): void {
+    const historyDisplay = historyManager.getDisplay({ reverseOrder: false });
+
+    if (historyDisplay.length === 0) {
+      this.addReplHistoryEntry("No command history", "definition");
+      return;
+    }
+
+    const historyText = historyDisplay
+      .map((entry) => `${entry.index}. ${entry.command}`)
+      .join("<br>");
+
+    const stats = historyManager.getStats();
+    const statsText = `<br><br>Statistics: ${stats.totalEntries} total, ${stats.uniqueCommands} unique`;
+
+    this.addReplHistoryEntry(
+      `Command history:<br>${historyText}${statsText}`,
+      "definition",
+      undefined,
+      undefined,
+      true,
+    );
+  }
+
+  private searchReplHistory(searchTerm: string): void {
+    if (!searchTerm) {
+      this.addReplHistoryEntry(
+        "Usage: :search [term]<br>Example: :search map",
+        "error",
+        undefined,
+        undefined,
+        true,
+      );
+      return;
+    }
+
+    const results = historyManager.search(searchTerm, { caseSensitive: false });
+
+    if (results.length === 0) {
+      this.addReplHistoryEntry(
+        `No commands found matching "${searchTerm}"`,
+        "definition",
+      );
+      return;
+    }
+
+    const resultText = results
+      .map((entry, idx) => `${idx + 1}. ${this.escapeHtml(entry.command)}`)
+      .join("<br>");
+
+    this.addReplHistoryEntry(
+      `Found ${results.length} command(s) matching "${searchTerm}":<br>${resultText}`,
+      "definition",
+      undefined,
+      undefined,
+      true,
+    );
+  }
+
+  private showHistoryStats(): void {
+    const stats = historyManager.getStats();
+
+    const statsText =
+      `History Statistics:<br><br>` +
+      `Total commands: ${stats.totalEntries}<br>` +
+      `Unique commands: ${stats.uniqueCommands}<br>` +
+      `Duplicate ratio: ${
+        stats.totalEntries > 0
+          ? ((1 - stats.uniqueCommands / stats.totalEntries) * 100).toFixed(1)
+          : 0
+      }%<br>`;
+
+    if (stats.mostRecent) {
+      const timeAgo = Date.now() - stats.mostRecent.timestamp;
+      const minutes = Math.floor(timeAgo / 60000);
+      const timeText = minutes < 1 ? "just now" : `${minutes} minute(s) ago`;
+
+      this.addReplHistoryEntry(
+        statsText +
+          `<br>Most recent: "${this.escapeHtml(stats.mostRecent.command)}" (${timeText})`,
+        "definition",
+        undefined,
+        undefined,
+        true,
+      );
+    } else {
+      this.addReplHistoryEntry(
+        statsText,
+        "definition",
+        undefined,
+        undefined,
+        true,
+      );
+    }
+  }
+
+  private async exportHistory(): Promise<void> {
+    try {
+      const historyJson = historyManager.export();
+      await navigator.clipboard.writeText(historyJson);
+
+      this.addReplHistoryEntry(
+        "History exported to clipboard (JSON format)",
+        "definition",
+      );
+    } catch (error) {
+      this.addReplHistoryEntry(
+        "Failed to export history to clipboard",
+        "error",
+      );
+    }
+  }
+
+  private async handleReplCrash(): Promise<void> {
+    debugLog("REPL crash detected, initiating automatic reset");
+
+    // Show a user-friendly message
+    this.addReplHistoryEntry(
+      "⚠️ The REPL encountered an error and needs to restart.<br>" +
+        "Reinitializing REPL state...",
+      "definition",
+      undefined,
+      undefined,
+      true,
+    );
+
+    // Small delay to let user see the message
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Reset the REPL state
+    updateAppState({ initState: { type: InitStateType.REPL_INITIALIZING } });
+
+    // Reset WASM state and reinitialize REPL
+    if (wasmInterface) {
+      try {
+        await wasmInterface.reset();
+        await this.initializeRepl();
+        updateAppState({ initState: { type: InitStateType.REPL_READY } });
+
+        this.addReplHistoryEntry(
+          "✓ REPL successfully restarted. You can continue entering expressions.",
+          "definition",
+          undefined,
+          undefined,
+          true,
+        );
+      } catch (error) {
+        debugLog("Failed to reset REPL after crash:", error);
+        updateAppState({
+          initState: {
+            type: InitStateType.ERROR,
+            message: "Failed to restart REPL. Please refresh the page.",
+          },
+        });
+
+        this.addReplHistoryEntry(
+          "❌ Failed to restart REPL. Please refresh the page to continue.",
+          "error",
+          undefined,
+          undefined,
+          true,
+        );
+      }
+    }
+  }
+
+  private switchToExamples(): void {
+    this.addReplHistoryEntry("Switching to Editor mode...", "definition");
+    updateAppState({ mode: { type: AppModeType.EDITOR } });
+    this.ensureEditorMode();
+  }
+
+  private getErrorStageName(stage: string): string {
+    const stageNames: Record<string, string> = {
+      parse: "Syntax Error",
+      canonicalize: "Canonicalization Error",
+      typecheck: "Type Error",
+      layout: "Layout Error",
+      evaluation: "Runtime Error",
+      interpreter: "Interpreter Error",
+      runtime: "Runtime Error",
+      unknown: "Error",
+    };
+    return stageNames[stage] || "Error";
   }
 
   showCurrentView(): void {
@@ -605,11 +1594,11 @@ class RocPlayground {
       this.startX = e.clientX;
       this.startWidthLeft = editorContainer?.offsetWidth || 0;
       this.startWidthRight = outputContainer?.offsetWidth || 0;
-      
+
       // Create bound functions to properly remove them later
       this.boundHandleMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
       this.boundHandleMouseUp = () => this.handleMouseUp();
-      
+
       document.addEventListener("mousemove", this.boundHandleMouseMove);
       document.addEventListener("mouseup", this.boundHandleMouseUp);
     });
@@ -640,7 +1629,7 @@ class RocPlayground {
 
   handleMouseUp(): void {
     this.isResizing = false;
-    
+
     // Remove the bound event listeners
     if (this.boundHandleMouseMove) {
       document.removeEventListener("mousemove", this.boundHandleMouseMove);
@@ -662,11 +1651,21 @@ class RocPlayground {
   }
 
   async updateUrlWithCompressedContent(): Promise<void> {
+    // Don't update URL when in REPL mode
+    if (isMode.repl(appState.mode)) {
+      return;
+    }
+
     if (this.updateUrlTimeout) {
       clearTimeout(this.updateUrlTimeout);
     }
 
     this.updateUrlTimeout = setTimeout(async () => {
+      // Double-check mode hasn't changed during timeout
+      if (isMode.repl(appState.mode)) {
+        return;
+      }
+
       try {
         const code = getDocumentContent(codeMirrorEditor);
 
@@ -682,6 +1681,35 @@ class RocPlayground {
         console.error("Failed to update URL:", error);
       }
     }, 1000);
+  }
+
+  clearUrlContent(): void {
+    debugLog("Clearing URL content");
+
+    // Clear any pending URL update timeouts
+    if (this.updateUrlTimeout) {
+      clearTimeout(this.updateUrlTimeout);
+      this.updateUrlTimeout = null;
+    }
+
+    // Clear the URL
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  resetEditorContent(): void {
+    debugLog("Resetting editor content");
+    if (codeMirrorEditor) {
+      // Reset to empty content or default example
+      const defaultContent = "# Enter Roc code here...";
+      setDocumentContent(codeMirrorEditor, defaultContent);
+    }
+
+    // Clear active example
+    if (activeExample !== null) {
+      const exampleItems = document.querySelectorAll(".example-item");
+      exampleItems[activeExample]?.classList.remove("active");
+      activeExample = null;
+    }
   }
 
   async restoreFromHash(): Promise<void> {
@@ -1069,9 +2097,9 @@ class RocPlayground {
   }
 
   addShareButton(): void {
-    const headerStatus = document.querySelector(".header-status");
-    if (headerStatus) {
-      let shareButton = headerStatus.querySelector(
+    const editorHeader = document.querySelector(".editor-header");
+    if (editorHeader) {
+      let shareButton = editorHeader.querySelector(
         ".share-button",
       ) as HTMLButtonElement;
       if (!shareButton) {
@@ -1080,8 +2108,7 @@ class RocPlayground {
         shareButton.innerHTML = "share link";
         shareButton.title = "Copy shareable link to clipboard";
         shareButton.onclick = () => this.copyShareLink();
-        const themeToggle = headerStatus.querySelector(".theme-toggle");
-        headerStatus.insertBefore(shareButton, themeToggle);
+        editorHeader.appendChild(shareButton);
       }
     }
   }
