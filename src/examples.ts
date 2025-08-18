@@ -3,7 +3,6 @@
 
 export interface Example {
   name: string;
-  description: string;
   code: string;
   filename: string;
 }
@@ -11,7 +10,6 @@ export interface Example {
 export const examples: Example[] = [
   {
     name: "Hello World",
-    description: "A simple hello world program",
     filename: "hello-world.roc",
     code: `app [main!] { pf: platform "../basic-cli/platform.roc" }
 
@@ -21,7 +19,6 @@ main! = |_| Stdout.line!("Hello, world!")`,
   },
   {
     name: "Basic Types",
-    description: "Numbers, strings, and booleans",
     filename: "basic-types.roc",
     code: `module [name, age, height, is_active, colors, numbers]
 
@@ -45,7 +42,6 @@ numbers = [1, 2, 3, 4, 5]`,
   },
   {
     name: "Functions",
-    description: "Function definitions and higher-order functions",
     filename: "functions.roc",
     code: `module [add, multiply, greet, is_even, apply_twice, factorial, Color, color_to_hex]
 
@@ -83,7 +79,6 @@ color_to_hex = |color|
   },
   {
     name: "Pattern Matching",
-    description: "Pattern matching with custom types, lists, and records",
     filename: "pattern-matching.roc",
     code: `module [Shape, calculate_area, process_result, analyze_list, process_user, describe_day]
 
@@ -142,7 +137,6 @@ describe_day = |day, isHoliday|
   },
   {
     name: "Records",
-    description: "Creating and working with records",
     filename: "records.roc",
     code: `module [Person, Address, create_person, get_full_name, update_age, move_to_new_address, process_employee, Stats, update_stats]
 

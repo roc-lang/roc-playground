@@ -40,22 +40,25 @@
                     </button>
                 </div>
                 <div class="theme-toggle">
-                    <span class="theme-label">Theme</span>
-                    <div
-                        class="theme-switch"
+                    <button 
+                        class="theme-button" 
                         id="themeSwitch"
-                        tabindex="0"
-                        role="switch"
-                        aria-checked="false"
+                        type="button"
                     >
-                        <div class="theme-switch-slider"></div>
-                    </div>
+                        Use Dark Mode
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Editor Mode Container -->
         <div class="main-container" id="editorContainer" style="display: none">
+            <div class="examples-sidebar">
+                <div class="examples-header">Examples</div>
+                <div class="examples-list" id="examplesList">
+                    <!-- Examples will be populated by JavaScript -->
+                </div>
+            </div>
             <div class="editor-container">
                 <div class="editor-header">
                     <!-- Diagnostic summary will be inserted here by JavaScript -->
@@ -67,45 +70,60 @@
 
             <div class="output-container">
                 <div class="output-header">
-                    <div class="stage-buttons">
+                    <div class="stage-tabs" role="tablist">
                         <button
-                            class="stage-button active"
-                            onclick="showDiagnostics()"
+                            class="stage-button"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="problems-panel"
                             id="diagnosticsBtn"
+                            tabindex="0"
                         >
                             PROBLEMS
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showTokens()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="tokens-panel"
                             id="tokensBtn"
+                            tabindex="-1"
                         >
                             TOKENS
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showParseAst()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="ast-panel"
                             id="parseBtn"
+                            tabindex="-1"
                         >
                             AST
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showCanCir()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="cir-panel"
                             id="canBtn"
+                            tabindex="-1"
                         >
                             CIR
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showTypes()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="types-panel"
                             id="typesBtn"
+                            tabindex="-1"
                         >
                             TYPES
                         </button>
                     </div>
                 </div>
-                <div class="output-content" id="outputContent">
+                <div class="output-content" role="tabpanel" id="outputContent" aria-labelledby="diagnosticsBtn">
                     <div class="loading">Initializing WASM module...</div>
                 </div>
             </div>
@@ -132,12 +150,6 @@
             </div>
         </div>
 
-        <div class="examples-footer">
-            <div class="examples-header">Examples</div>
-            <div class="examples-list" id="examplesList">
-                <!-- Examples will be populated by JavaScript -->
-            </div>
-        </div>
 
         <!-- Load playground entry point -->
         <script type="module" src="index.ts"></script>

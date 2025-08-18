@@ -461,8 +461,7 @@ class RocPlayground {
       const exampleItem = document.createElement("div");
       exampleItem.className = "example-item";
       exampleItem.innerHTML = `
-        <div class="example-title">${example.name}</div>
-        <div class="example-description">${example.description}</div>
+        <div class="example-filename">${example.filename}</div>
       `;
 
       exampleItem.addEventListener("click", () => {
@@ -541,9 +540,11 @@ class RocPlayground {
     // Update UI first
     const editorContainer = document.getElementById("editorContainer");
     const replContainer = document.getElementById("replContainer");
+    const examplesSidebar = document.querySelector(".examples-sidebar") as HTMLElement;
 
     if (editorContainer) editorContainer.style.display = "flex";
     if (replContainer) replContainer.style.display = "none";
+    if (examplesSidebar) examplesSidebar.style.display = "flex";
 
     this.updateModeButtons("EDITOR");
 
@@ -566,6 +567,7 @@ class RocPlayground {
     // Update UI
     const editorContainer = document.getElementById("editorContainer");
     const replContainer = document.getElementById("replContainer");
+    const examplesSidebar = document.querySelector(".examples-sidebar") as HTMLElement;
 
     if (editorContainer) {
       editorContainer.style.display = "none";
@@ -574,6 +576,10 @@ class RocPlayground {
     if (replContainer) {
       replContainer.style.display = "flex";
       debugLog("REPL container shown");
+    }
+    if (examplesSidebar) {
+      examplesSidebar.style.display = "none";
+      debugLog("Examples sidebar hidden");
     }
 
     this.updateModeButtons("REPL");
@@ -1506,11 +1512,21 @@ class RocPlayground {
     const buttons = document.querySelectorAll(".stage-button");
     buttons.forEach((button) => {
       button.classList.remove("active");
+      button.setAttribute("aria-selected", "false");
+      button.setAttribute("tabindex", "-1");
     });
 
     const activeButton = document.getElementById(this.getButtonId(currentView));
     if (activeButton) {
       activeButton.classList.add("active");
+      activeButton.setAttribute("aria-selected", "true");
+      activeButton.setAttribute("tabindex", "0");
+      
+      // Update the output panel's aria-labelledby
+      const outputContent = document.getElementById("outputContent");
+      if (outputContent) {
+        outputContent.setAttribute("aria-labelledby", activeButton.id);
+      }
     }
   }
 
@@ -1528,10 +1544,14 @@ class RocPlayground {
   updateDiagnosticSummary(): void {
     const editorHeader = document.querySelector(".editor-header");
 
-    // Remove existing summary
+    // Remove existing summary and time elements
     const existingSummary = editorHeader?.querySelector(".diagnostic-summary");
+    const existingTimeText = editorHeader?.querySelector(".compile-time");
     if (existingSummary) {
       existingSummary.remove();
+    }
+    if (existingTimeText) {
+      existingTimeText.remove();
     }
 
     // Always show summary after compilation (when timing info is available)
@@ -1562,20 +1582,49 @@ class RocPlayground {
       }
 
       let summaryText = "";
-      // Always show error/warning count after compilation
-      summaryText += `Found ${totalErrors} error(s) and ${totalWarnings} warning(s)`;
 
-      if (lastCompileTime !== null) {
-        let timeText;
-        if (lastCompileTime < 1000) {
-          timeText = `${lastCompileTime.toFixed(1)}ms`;
-        } else {
-          timeText = `${(lastCompileTime / 1000).toFixed(1)}s`;
+      if (totalErrors === 0 && totalWarnings === 0) {
+        summaryText += "No errors or warnings";
+      } else {
+        const errorText = totalErrors === 1 ? 'error' : 'errors';
+        const warningText = totalWarnings === 1 ? 'warning' : 'warnings';
+        
+        let errorPart = "";
+        let warningPart = "";
+        
+        if (totalErrors > 0) {
+          errorPart = `<span style="color: var(--color-error); font-weight: bold;">${totalErrors}</span> ${errorText}`;
         }
-        summaryText += (summaryText ? " " : "") + `⚡ ${timeText}`;
+        
+        if (totalWarnings > 0) {
+          warningPart = `<span style="color: var(--color-warning); font-weight: bold;">${totalWarnings}</span> ${warningText}`;
+        }
+        
+        if (errorPart && warningPart) {
+          summaryText += `${errorPart} - ${warningPart}`;
+        } else {
+          summaryText += errorPart + warningPart;
+        }
       }
 
       summaryDiv.innerHTML = summaryText;
+
+      // Create separate time element
+      if (lastCompileTime !== null) {
+        const timeDiv = document.createElement("div");
+        timeDiv.className = "compile-time";
+        let timeText;
+        if (lastCompileTime < 1000) {
+          const ms = lastCompileTime.toFixed(1);
+          timeText = ms.endsWith('.0') ? `${Math.round(lastCompileTime)} ms` : `${ms} ms`;
+        } else {
+          const seconds = (lastCompileTime / 1000).toFixed(1);
+          timeText = seconds.endsWith('.0') ? `${Math.round(lastCompileTime / 1000)}s` : `${seconds}s`;
+        }
+        timeDiv.innerHTML = `⚡ ${timeText}`;
+        editorHeader?.appendChild(timeDiv);
+      }
+
       editorHeader?.appendChild(summaryDiv);
     }
   }
@@ -1648,6 +1697,7 @@ class RocPlayground {
     });
 
     this.addShareButton();
+    this.setupTabNavigation();
   }
 
   async updateUrlWithCompressedContent(): Promise<void> {
@@ -1821,10 +1871,10 @@ class RocPlayground {
   }
 
   updateThemeLabel(): void {
-    const themeLabel = document.querySelector(".theme-label");
+    const themeButton = document.getElementById("themeSwitch") as HTMLButtonElement;
     const currentTheme = document.documentElement.getAttribute("data-theme");
-    if (themeLabel) {
-      themeLabel.textContent = currentTheme === "dark" ? "Dark" : "Light";
+    if (themeButton) {
+      themeButton.textContent = currentTheme === "dark" ? "Use Light Mode" : "Use Dark Mode";
     }
   }
 
@@ -2141,6 +2191,88 @@ class RocPlayground {
       } else {
         alert("No content to share");
       }
+    }
+  }
+
+  setupTabNavigation(): void {
+    const tabList = document.querySelector('.stage-tabs[role="tablist"]');
+    if (!tabList) return;
+
+    const tabs = Array.from(tabList.querySelectorAll('[role="tab"]')) as HTMLElement[];
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.activateTab(tab);
+      });
+
+      tab.addEventListener('keydown', (e) => {
+        this.handleTabKeydown(e, tabs, index);
+      });
+    });
+  }
+
+  private activateTab(tab: HTMLElement): void {
+    const tabId = tab.id;
+    
+    // Map tab IDs to their corresponding methods
+    switch (tabId) {
+      case 'diagnosticsBtn':
+        this.showDiagnostics();
+        break;
+      case 'tokensBtn':
+        this.showTokens();
+        break;
+      case 'parseBtn':
+        this.showParseAst();
+        break;
+      case 'canBtn':
+        this.showCanCir();
+        break;
+      case 'typesBtn':
+        this.showTypes();
+        break;
+    }
+  }
+
+  private handleTabKeydown(e: KeyboardEvent, tabs: HTMLElement[], currentIndex: number): void {
+    let targetIndex = currentIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        targetIndex = (currentIndex + 1) % tabs.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        break;
+      case 'Home':
+        e.preventDefault();
+        targetIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        targetIndex = tabs.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        const currentTab = tabs[currentIndex];
+        if (currentTab) {
+          this.activateTab(currentTab);
+        }
+        return;
+      default:
+        return;
+    }
+
+    // Move focus to the target tab
+    const targetTab = tabs[targetIndex];
+    if (targetTab) {
+      targetTab.focus();
     }
   }
 }
