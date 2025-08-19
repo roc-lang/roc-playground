@@ -180,17 +180,6 @@ export function createEditorView(
         // Better line height for readability
         lineHeight: options.accessibilityConfig?.highContrast ? "1.6" : "1.4",
       },
-
-      // WASM-based error styling (applied via diagnostics)
-      ".cm-diagnostic-error": {
-        textDecoration: "underline wavy red",
-      },
-      ".cm-diagnostic-warning": {
-        textDecoration: "underline wavy orange",
-      },
-      ".cm-diagnostic-info": {
-        textDecoration: "underline dotted blue",
-      },
       // Reduce motion if requested
       ...(options.accessibilityConfig?.reduceMotion && {
         "*": {

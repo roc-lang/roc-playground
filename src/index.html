@@ -7,36 +7,33 @@
     </head>
     <body>
         <div class="header">
-            <div class="header-title">
-                <svg
-                    viewBox="0 0 52 53"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style="display: flex; height: 25px"
-                >
-                    <!-- Make this icon look nicer in dark mode. (Only Firefox supports this; others ignore it.) -->
-                    <style>
-                        @media (prefers-color-scheme: dark) {
-                            polygon {
-                                fill: #9c7bea;
-                            }
+            <svg
+                id="roc-logo-top-left"
+                viewBox="0 0 52 53"
+                xmlns="http://www.w3.org/2000/svg"
+                style="display: flex; height: 25px"
+                aria-label="Roc Logo"
+            >
+                <!-- Make this icon look nicer in dark mode. (Only Firefox supports this; others ignore it.) -->
+                <style>
+                    @media (prefers-color-scheme: dark) {
+                        polygon {
+                            fill: #9c7bea;
                         }
-                    </style>
-                    <polygon
-                        fill="#7d59dd"
-                        points="0,0 23.8834,3.21052 37.2438,19.0101 45.9665,16.6324 50.5,22 45,22 44.0315,26.3689 26.4673,39.3424 27.4527,45.2132 17.655,53 23.6751,22.7086"
-                    />
-                </svg>
-                <h1 class="header-title-text" data-title="Roc Playground">
-                    Roc Playground
-                </h1>
-            </div>
+                    }
+                </style>
+                <polygon
+                    fill="#7d59dd"
+                    points="0,0 23.8834,3.21052 37.2438,19.0101 45.9665,16.6324 50.5,22 45,22 44.0315,26.3689 26.4673,39.3424 27.4527,45.2132 17.655,53 23.6751,22.7086"
+                />
+            </svg>
             <div class="header-status">
                 <div class="mode-toggle">
                     <button class="mode-button active" id="replModeBtn">
                         REPL
                     </button>
                     <button class="mode-button" id="editorModeBtn">
-                        Editor
+                        EDITOR
                     </button>
                 </div>
                 <div class="theme-toggle">
@@ -54,7 +51,7 @@
         <!-- Editor Mode Container -->
         <div class="main-container" id="editorContainer" style="display: none">
             <div class="examples-sidebar">
-                <div class="examples-header">Examples</div>
+                <div class="examples-header">EXAMPLES</div>
                 <div class="examples-list" id="examplesList">
                     <!-- Examples will be populated by JavaScript -->
                 </div>

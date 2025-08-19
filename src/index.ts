@@ -460,12 +460,23 @@ class RocPlayground {
     examples.forEach((example, index) => {
       const exampleItem = document.createElement("div");
       exampleItem.className = "example-item";
+      exampleItem.setAttribute("role", "button");
+      exampleItem.setAttribute("tabindex", "0");
+      exampleItem.setAttribute("aria-label", `Load ${example.name} example`);
       exampleItem.innerHTML = `
         <div class="example-filename">${example.filename}</div>
       `;
 
-      exampleItem.addEventListener("click", () => {
+      const handleActivation = () => {
         this.loadExample(index);
+      };
+
+      exampleItem.addEventListener("click", handleActivation);
+      exampleItem.addEventListener("keydown", (event: KeyboardEvent) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleActivation();
+        }
       });
 
       examplesList?.appendChild(exampleItem);
@@ -488,10 +499,16 @@ class RocPlayground {
     // Update active example
     if (activeExample !== null) {
       const exampleItems = document.querySelectorAll(".example-item");
-      exampleItems[activeExample]?.classList.remove("active");
+      const previousItem = exampleItems[activeExample] as HTMLElement;
+      previousItem?.classList.remove("active");
+      previousItem?.setAttribute("aria-pressed", "false");
     }
 
     activeExample = index;
+    const exampleItems = document.querySelectorAll(".example-item");
+    const activeItem = exampleItems[index] as HTMLElement;
+    activeItem?.classList.add("active");
+    activeItem?.setAttribute("aria-pressed", "true");
 
     // Set editor content
     setDocumentContent(codeMirrorEditor, example.code);
@@ -1757,7 +1774,9 @@ class RocPlayground {
     // Clear active example
     if (activeExample !== null) {
       const exampleItems = document.querySelectorAll(".example-item");
-      exampleItems[activeExample]?.classList.remove("active");
+      const activeItem = exampleItems[activeExample] as HTMLElement;
+      activeItem?.classList.remove("active");
+      activeItem?.setAttribute("aria-pressed", "false");
       activeExample = null;
     }
   }
