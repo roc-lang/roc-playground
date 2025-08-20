@@ -43,7 +43,7 @@ const InitStateType = {
 } as const;
 
 const IntentType = {
-  DEFAULT_REPL: "DEFAULT_REPL",
+  DEFAULT_EDITOR: "DEFAULT_EDITOR",
   LOAD_URL_CONTENT: "LOAD_URL_CONTENT",
   LOAD_EXAMPLE: "LOAD_EXAMPLE",
 } as const;
@@ -62,7 +62,7 @@ type InitState =
   | { type: typeof InitStateType.ERROR; message: string };
 
 type InitIntent =
-  | { type: typeof IntentType.DEFAULT_REPL }
+  | { type: typeof IntentType.DEFAULT_EDITOR }
   | { type: typeof IntentType.LOAD_URL_CONTENT; content: string }
   | { type: typeof IntentType.LOAD_EXAMPLE; exampleIndex: number };
 
@@ -111,10 +111,10 @@ const isInitState = {
 };
 
 const isIntent = {
-  defaultRepl: (
+  defaultEditor: (
     intent: InitIntent,
-  ): intent is { type: typeof IntentType.DEFAULT_REPL } =>
-    intent.type === IntentType.DEFAULT_REPL,
+  ): intent is { type: typeof IntentType.DEFAULT_EDITOR } =>
+    intent.type === IntentType.DEFAULT_EDITOR,
   loadUrlContent: (
     intent: InitIntent,
   ): intent is { type: typeof IntentType.LOAD_URL_CONTENT; content: string } =>
@@ -135,8 +135,8 @@ let lastCompileTime: number | null = null;
 
 let appState: AppState = {
   initState: { type: InitStateType.INIT },
-  mode: { type: AppModeType.REPL },
-  intent: { type: IntentType.DEFAULT_REPL },
+  mode: { type: AppModeType.EDITOR },
+  intent: { type: IntentType.DEFAULT_EDITOR },
 };
 
 let codeMirrorEditor: any = null;
@@ -205,19 +205,19 @@ function determineInitIntent(): InitIntent {
       // We don't decode here, just detect that content exists
       return { type: IntentType.LOAD_URL_CONTENT, content: b64 };
     } catch {
-      return { type: IntentType.DEFAULT_REPL };
+      return { type: IntentType.DEFAULT_EDITOR };
     }
   }
-  return { type: IntentType.DEFAULT_REPL };
+  return { type: IntentType.DEFAULT_EDITOR };
 }
 
 async function executeIntent(
   intent: InitIntent,
   playground: RocPlayground,
 ): Promise<void> {
-  if (isIntent.defaultRepl(intent)) {
-    updateAppState({ mode: { type: AppModeType.REPL } });
-    await playground.ensureReplMode();
+  if (isIntent.defaultEditor(intent)) {
+    updateAppState({ mode: { type: AppModeType.EDITOR } });
+    await playground.ensureEditorMode();
   } else if (isIntent.loadUrlContent(intent)) {
     updateAppState({ mode: { type: AppModeType.EDITOR } });
     await playground.ensureEditorMode();

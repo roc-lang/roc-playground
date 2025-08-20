@@ -11,29 +11,29 @@
                 id="roc-logo-top-left"
                 viewBox="0 0 52 53"
                 xmlns="http://www.w3.org/2000/svg"
-                style="display: flex; height: 25px"
+                style="display: flex; height: 30px"
                 aria-label="Roc Logo"
             >
                 <!-- Make this icon look nicer in dark mode. (Only Firefox supports this; others ignore it.) -->
                 <style>
                     @media (prefers-color-scheme: dark) {
                         polygon {
-                            fill: #9c7bea;
+                            fill: #8450ff; /* matches var(--state-active) in dark mode */
                         }
                     }
                 </style>
                 <polygon
-                    fill="#7d59dd"
+                    fill="rgba(124, 58, 237, 0.9)"
                     points="0,0 23.8834,3.21052 37.2438,19.0101 45.9665,16.6324 50.5,22 45,22 44.0315,26.3689 26.4673,39.3424 27.4527,45.2132 17.655,53 23.6751,22.7086"
                 />
             </svg>
             <div class="header-status">
                 <div class="mode-toggle">
-                    <button class="mode-button active" id="replModeBtn">
-                        REPL
-                    </button>
-                    <button class="mode-button" id="editorModeBtn">
+                    <button class="mode-button active" id="editorModeBtn">
                         EDITOR
+                    </button>
+                    <button class="mode-button" id="replModeBtn">
+                        REPL
                     </button>
                 </div>
                 <div class="theme-toggle">
