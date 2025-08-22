@@ -7,55 +7,55 @@
     </head>
     <body>
         <div class="header">
-            <div class="header-title">
-                <svg
-                    viewBox="0 0 52 53"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style="display: flex; height: 25px"
-                >
-                    <!-- Make this icon look nicer in dark mode. (Only Firefox supports this; others ignore it.) -->
-                    <style>
-                        @media (prefers-color-scheme: dark) {
-                            polygon {
-                                fill: #9c7bea;
-                            }
+            <svg
+                id="roc-logo-top-left"
+                viewBox="0 0 52 53"
+                xmlns="http://www.w3.org/2000/svg"
+                style="display: flex; height: 30px"
+                aria-label="Roc Logo"
+            >
+                <!-- Make this icon look nicer in dark mode. (Only Firefox supports this; others ignore it.) -->
+                <style>
+                    @media (prefers-color-scheme: dark) {
+                        polygon {
+                            fill: #8450ff; /* matches var(--state-active) in dark mode */
                         }
-                    </style>
-                    <polygon
-                        fill="#7d59dd"
-                        points="0,0 23.8834,3.21052 37.2438,19.0101 45.9665,16.6324 50.5,22 45,22 44.0315,26.3689 26.4673,39.3424 27.4527,45.2132 17.655,53 23.6751,22.7086"
-                    />
-                </svg>
-                <h1 class="header-title-text" data-title="Roc Playground">
-                    Roc Playground
-                </h1>
-            </div>
+                    }
+                </style>
+                <polygon
+                    fill="rgba(124, 58, 237, 0.9)"
+                    points="0,0 23.8834,3.21052 37.2438,19.0101 45.9665,16.6324 50.5,22 45,22 44.0315,26.3689 26.4673,39.3424 27.4527,45.2132 17.655,53 23.6751,22.7086"
+                />
+            </svg>
             <div class="header-status">
                 <div class="mode-toggle">
-                    <button class="mode-button active" id="replModeBtn">
-                        REPL
+                    <button class="mode-button active" id="editorModeBtn">
+                        EDITOR
                     </button>
-                    <button class="mode-button" id="editorModeBtn">
-                        Editor
+                    <button class="mode-button" id="replModeBtn">
+                        REPL
                     </button>
                 </div>
                 <div class="theme-toggle">
-                    <span class="theme-label">Theme</span>
-                    <div
-                        class="theme-switch"
+                    <button 
+                        class="theme-button" 
                         id="themeSwitch"
-                        tabindex="0"
-                        role="switch"
-                        aria-checked="false"
+                        type="button"
                     >
-                        <div class="theme-switch-slider"></div>
-                    </div>
+                        Use Dark Mode
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Editor Mode Container -->
         <div class="main-container" id="editorContainer" style="display: none">
+            <div class="examples-sidebar">
+                <div class="examples-header">EXAMPLES</div>
+                <div class="examples-list" id="examplesList">
+                    <!-- Examples will be populated by JavaScript -->
+                </div>
+            </div>
             <div class="editor-container">
                 <div class="editor-header">
                     <!-- Diagnostic summary will be inserted here by JavaScript -->
@@ -67,45 +67,60 @@
 
             <div class="output-container">
                 <div class="output-header">
-                    <div class="stage-buttons">
+                    <div class="stage-tabs" role="tablist">
                         <button
-                            class="stage-button active"
-                            onclick="showDiagnostics()"
+                            class="stage-button"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="problems-panel"
                             id="diagnosticsBtn"
+                            tabindex="0"
                         >
                             PROBLEMS
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showTokens()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="tokens-panel"
                             id="tokensBtn"
+                            tabindex="-1"
                         >
                             TOKENS
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showParseAst()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="ast-panel"
                             id="parseBtn"
+                            tabindex="-1"
                         >
                             AST
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showCanCir()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="cir-panel"
                             id="canBtn"
+                            tabindex="-1"
                         >
                             CIR
                         </button>
                         <button
                             class="stage-button"
-                            onclick="showTypes()"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="types-panel"
                             id="typesBtn"
+                            tabindex="-1"
                         >
                             TYPES
                         </button>
                     </div>
                 </div>
-                <div class="output-content" id="outputContent">
+                <div class="output-content" role="tabpanel" id="outputContent" aria-labelledby="diagnosticsBtn">
                     <div class="loading">Initializing WASM module...</div>
                 </div>
             </div>
@@ -132,12 +147,6 @@
             </div>
         </div>
 
-        <div class="examples-footer">
-            <div class="examples-header">Examples</div>
-            <div class="examples-list" id="examplesList">
-                <!-- Examples will be populated by JavaScript -->
-            </div>
-        </div>
 
         <!-- Load playground entry point -->
         <script type="module" src="index.ts"></script>
