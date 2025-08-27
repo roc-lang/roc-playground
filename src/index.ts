@@ -284,7 +284,6 @@ class RocPlayground {
       this.setupUrlSharing();
       this.setupResizeHandle();
       this.setupModeToggle();
-      this.setupOutputActions();
 
       currentState = "READY";
 
@@ -536,14 +535,6 @@ class RocPlayground {
     replModeBtn?.addEventListener("click", () => {
       updateAppState({ mode: { type: AppModeType.REPL } });
       this.ensureReplMode();
-    });
-  }
-
-  setupOutputActions(): void {
-    const applyFormatBtn = document.getElementById("applyFormatBtn");
-    
-    applyFormatBtn?.addEventListener("click", () => {
-      this.applyFormattedCodeToEditor();
     });
   }
 
@@ -1647,13 +1638,13 @@ class RocPlayground {
       }
     }
 
-    // Show/hide output actions based on current view
-    const outputActions = document.getElementById("outputActions");
-    if (outputActions) {
+    // Show/hide format button based on current view
+    const formatButton = document.querySelector(".format-button") as HTMLButtonElement;
+    if (formatButton) {
       if (currentView === "FORMATTED") {
-        outputActions.style.display = "flex";
+        formatButton.style.display = "inline-block";
       } else {
-        outputActions.style.display = "none";
+        formatButton.style.display = "none";
       }
     }
   }
@@ -1825,7 +1816,7 @@ class RocPlayground {
       this.restoreFromHash();
     });
 
-    this.addShareButton();
+    this.addHeaderButtons();
     this.setupTabNavigation();
   }
 
@@ -2282,10 +2273,34 @@ class RocPlayground {
     }
   }
 
-  addShareButton(): void {
+  addHeaderButtons(): void {
     const editorHeader = document.querySelector(".editor-header");
     if (editorHeader) {
-      let shareButton = editorHeader.querySelector(
+      // Create or get the button container
+      let buttonContainer = editorHeader.querySelector(
+        ".header-buttons-container",
+      ) as HTMLDivElement;
+      if (!buttonContainer) {
+        buttonContainer = document.createElement("div");
+        buttonContainer.className = "header-buttons-container";
+        editorHeader.appendChild(buttonContainer);
+      }
+
+      // Add format button
+      let formatButton = buttonContainer.querySelector(
+        ".format-button",
+      ) as HTMLButtonElement;
+      if (!formatButton) {
+        formatButton = document.createElement("button");
+        formatButton.className = "format-button";
+        formatButton.innerHTML = "format code";
+        formatButton.title = "Apply formatted code to editor";
+        formatButton.onclick = () => this.applyFormattedCodeToEditor();
+        buttonContainer.appendChild(formatButton);
+      }
+
+      // Add share button
+      let shareButton = buttonContainer.querySelector(
         ".share-button",
       ) as HTMLButtonElement;
       if (!shareButton) {
@@ -2294,7 +2309,7 @@ class RocPlayground {
         shareButton.innerHTML = "share link";
         shareButton.title = "Copy shareable link to clipboard";
         shareButton.onclick = () => this.copyShareLink();
-        editorHeader.appendChild(shareButton);
+        buttonContainer.appendChild(shareButton);
       }
     }
   }
