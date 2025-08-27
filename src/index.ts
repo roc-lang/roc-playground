@@ -284,6 +284,7 @@ class RocPlayground {
       this.setupUrlSharing();
       this.setupResizeHandle();
       this.setupModeToggle();
+      this.setupKeyboardShortcuts();
 
       currentState = "READY";
 
@@ -537,6 +538,23 @@ class RocPlayground {
     replModeBtn?.addEventListener("click", () => {
       updateAppState({ mode: { type: AppModeType.REPL } });
       this.ensureReplMode();
+    });
+  }
+
+  setupKeyboardShortcuts(): void {
+    document.addEventListener("keydown", async (event: KeyboardEvent) => {
+      const isFormatShortcut = event.ctrlKey && event.shiftKey && event.key === "F";
+
+      if (isFormatShortcut && isMode.editor(appState.mode)) {
+        event.preventDefault();        
+        if (this.hasValidAst()) {
+          try {
+            await this.applyFormattedCodeToEditor();
+          } catch (error) {
+            console.error("Error formatting code via keyboard shortcut:", error);
+          }
+        }
+      }
     });
   }
 
@@ -2332,7 +2350,7 @@ class RocPlayground {
         formatButton = document.createElement("button");
         formatButton.className = "format-button";
         formatButton.innerHTML = "format code";
-        formatButton.title = "Apply formatted code to editor";
+        formatButton.title = "Apply formatted code to editor (Ctrl+Shift+F)";
         formatButton.onclick = async () => {
           try {
             await this.applyFormattedCodeToEditor();
