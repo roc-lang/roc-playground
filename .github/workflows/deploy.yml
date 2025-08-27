@@ -41,10 +41,17 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload build artifacts
+      - name: Upload build artifacts (main)
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
+          path: ./dist
+
+      - name: Upload build artifacts (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-build-${{ github.event.number }}
           path: ./dist
 
   deploy:
@@ -60,3 +67,65 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-preview:
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: pr-preview-${{ github.event.number }}
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-build-${{ github.event.number }}
+          path: ./dist
+
+      - name: Deploy PR Preview to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: pr-build-${{ github.event.number }}
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = `${{ steps.deployment.outputs.page_url }}`;
+            
+            // Find existing preview comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.data.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('Deploy Preview')
+            );
+            
+            const body = `## 🚀 Deploy Preview
+            
+            Preview URL: ${previewUrl}
+            
+            Built from commit: ${context.sha.substring(0, 7)}`;
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
