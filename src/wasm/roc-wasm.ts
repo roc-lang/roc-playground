@@ -71,6 +71,7 @@ export interface WasmInterface {
   parse: () => Promise<WasmResponse>;
   canonicalize: () => Promise<WasmResponse>;
   getTypes: () => Promise<WasmResponse>;
+  formatCode: () => Promise<WasmResponse>;
   getHoverInfo: (
     identifier: string,
     line: number,
@@ -197,6 +198,7 @@ function createWasmInterface(): WasmInterface {
     parse: () => sendMessageQueued({ type: "QUERY_AST" }),
     canonicalize: () => sendMessageQueued({ type: "QUERY_CIR" }),
     getTypes: () => sendMessageQueued({ type: "QUERY_TYPES" }),
+    formatCode: () => sendMessageQueued({ type: "QUERY_FORMATTED" }),
     getHoverInfo: async (identifier, line, ch) => {
       try {
         // The WASM module expects a 1-based column, but editor tooling
