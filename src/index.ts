@@ -284,6 +284,7 @@ class RocPlayground {
       this.setupUrlSharing();
       this.setupResizeHandle();
       this.setupModeToggle();
+      this.setupOutputActions();
 
       currentState = "READY";
 
@@ -535,6 +536,14 @@ class RocPlayground {
     replModeBtn?.addEventListener("click", () => {
       updateAppState({ mode: { type: AppModeType.REPL } });
       this.ensureReplMode();
+    });
+  }
+
+  setupOutputActions(): void {
+    const applyFormatBtn = document.getElementById("applyFormatBtn");
+    
+    applyFormatBtn?.addEventListener("click", () => {
+      this.applyFormattedCodeToEditor();
     });
   }
 
@@ -1592,6 +1601,31 @@ class RocPlayground {
     }
   }
 
+  applyFormattedCodeToEditor(): void {
+    if (!this.formattedCodeEditor || !codeMirrorEditor) {
+      this.showError("No formatted code available to apply");
+      return;
+    }
+
+    try {
+      // Get the formatted code from the read-only editor
+      const formattedContent = getDocumentContent(this.formattedCodeEditor);
+      
+      // Apply it to the main editor
+      setDocumentContent(codeMirrorEditor, formattedContent);
+      
+      // Show success feedback
+      this.setStatus("Formatted code applied to editor");
+      
+      // Optionally compile the new code
+      this.compileCode(formattedContent);
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showError(`Failed to apply formatted code: ${message}`);
+    }
+  }
+
   updateStageButtons(): void {
     const buttons = document.querySelectorAll(".stage-button");
     buttons.forEach((button) => {
@@ -1610,6 +1644,16 @@ class RocPlayground {
       const outputContent = document.getElementById("outputContent");
       if (outputContent) {
         outputContent.setAttribute("aria-labelledby", activeButton.id);
+      }
+    }
+
+    // Show/hide output actions based on current view
+    const outputActions = document.getElementById("outputActions");
+    if (outputActions) {
+      if (currentView === "FORMATTED") {
+        outputActions.style.display = "flex";
+      } else {
+        outputActions.style.display = "none";
       }
     }
   }

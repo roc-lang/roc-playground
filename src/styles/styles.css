@@ -904,6 +904,50 @@ body {
     height: var(--header-height);
 }
 
+.output-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.apply-format-button {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-out);
+    min-width: var(--size-70);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    white-space: nowrap;
+    border-radius: 0;
+}
+
+.apply-format-button:hover:not(:disabled) {
+    background-color: var(--color-primary);
+    color: var(--bg-primary);
+    border-color: var(--color-primary);
+}
+
+.apply-format-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.apply-format-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: var(--size-2);
+}
+
+.apply-format-button svg {
+    flex-shrink: 0;
+}
+
 .stage-tabs {
     display: flex;
     gap: 0;
