@@ -447,6 +447,8 @@ class RocPlayground {
         this.showCurrentView();
       }
 
+      this.updateStageButtons();
+
       // Update URL with compressed content
       this.updateUrlWithCompressedContent();
     } catch (error) {
@@ -1592,28 +1594,54 @@ class RocPlayground {
     }
   }
 
-  applyFormattedCodeToEditor(): void {
-    if (!this.formattedCodeEditor || !codeMirrorEditor) {
-      this.showError("No formatted code available to apply");
+  async applyFormattedCodeToEditor(): Promise<void> {
+    if (!codeMirrorEditor || !wasmInterface) {
+      this.showError("Editor or WASM interface not available");
       return;
     }
 
+    const formatButton = document.querySelector(".format-button") as HTMLButtonElement;
+
     try {
-      // Get the formatted code from the read-only editor
-      const formattedContent = getDocumentContent(this.formattedCodeEditor);
+      if (formatButton) {
+        formatButton.disabled = true;
+      }
+
+      // If we already have the formatted code editor with content, use it
+      if (this.formattedCodeEditor) {
+        const formattedContent = getDocumentContent(this.formattedCodeEditor);
+        setDocumentContent(codeMirrorEditor, formattedContent);
+        this.setStatus("Formatted code applied to editor");
+        this.compileCode(formattedContent);
+        return;
+      }
+
+      this.setStatus("Fetching formatted code...");
       
-      // Apply it to the main editor
-      setDocumentContent(codeMirrorEditor, formattedContent);
-      
-      // Show success feedback
-      this.setStatus("Formatted code applied to editor");
-      
-      // Optionally compile the new code
-      this.compileCode(formattedContent);
+      const currentCode = getDocumentContent(codeMirrorEditor);
+      await this.compileCode(currentCode, true);
+
+      const result = await wasmInterface.formatCode();
+
+      if (result.status === "SUCCESS") {
+        const formattedCode = result.data || currentCode;
+        
+        setDocumentContent(codeMirrorEditor, formattedCode);
+        
+        this.setStatus("Formatted code applied to editor");
+
+        this.compileCode(formattedCode);
+      } else {
+        this.showError(`Failed to format code: ${result.message || "Unknown error"}`);
+      }
       
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showError(`Failed to apply formatted code: ${message}`);
+    } finally {
+      if (formatButton) {
+        formatButton.disabled = false;
+      }
     }
   }
 
@@ -1638,15 +1666,25 @@ class RocPlayground {
       }
     }
 
-    // Show/hide format button based on current view
+    // Show/hide format button based on whether we have a valid AST
     const formatButton = document.querySelector(".format-button") as HTMLButtonElement;
     if (formatButton) {
-      if (currentView === "FORMATTED") {
-        formatButton.style.display = "inline-block";
+      if (this.hasValidAst()) {
+        formatButton.disabled = false;
       } else {
-        formatButton.style.display = "none";
+        formatButton.disabled = true;
       }
     }
+  }
+
+  hasValidAst(): boolean {
+    // Must have a successful compilation result
+    if (!this.lastCompileResult || this.lastCompileResult.status !== "SUCCESS") {
+      return false;
+    }
+
+    return lastDiagnostics.every(diagnostic => 
+      diagnostic.severity != "error" || !diagnostic.message.toLowerCase().includes("parse"));
   }
 
   getButtonId(view: string): string {
@@ -2295,7 +2333,13 @@ class RocPlayground {
         formatButton.className = "format-button";
         formatButton.innerHTML = "format code";
         formatButton.title = "Apply formatted code to editor";
-        formatButton.onclick = () => this.applyFormattedCodeToEditor();
+        formatButton.onclick = async () => {
+          try {
+            await this.applyFormattedCodeToEditor();
+          } catch (error) {
+            console.error("Error applying formatted code:", error);
+          }
+        };
         buttonContainer.appendChild(formatButton);
       }
 

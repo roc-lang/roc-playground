@@ -561,6 +561,14 @@ body {
     outline-offset: var(--size-2);
 }
 
+.format-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--bg-tertiary);
+    color: var(--text-tertiary);
+    border-color: var(--border-subtle);
+}
+
 .main-container {
     display: flex;
     flex: 1;
