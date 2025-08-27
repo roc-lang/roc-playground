@@ -128,7 +128,7 @@ const isIntent = {
 // Global state variables
 let wasmInterface: WasmInterface | null = null;
 let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
-let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" = "PROBLEMS";
+let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" = "PROBLEMS";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
@@ -1324,6 +1324,9 @@ class RocPlayground {
       case "TYPES":
         this.showTypes();
         break;
+      case "FORMATTED":
+        this.showFormatted();
+        break;
     }
   }
 
@@ -1525,6 +1528,45 @@ class RocPlayground {
     this.setupSourceRangeInteractions();
   }
 
+  async showFormatted(): Promise<void> {
+    currentView = "FORMATTED";
+    this.updateStageButtons();
+
+    if (!wasmInterface) {
+      this.showError("WASM module not loaded");
+      return;
+    }
+
+    try {
+      this.isUpdatingView = true;
+
+      // Ensure source is compiled/loaded before formatting
+      const currentCode = getDocumentContent(codeMirrorEditor);
+      await this.compileCode(currentCode, true);
+
+      const result = await wasmInterface.formatCode();
+
+      const outputContent = document.getElementById("outputContent");
+      if (result.status === "SUCCESS") {
+        if (outputContent) {
+          outputContent.innerHTML = `<pre class="formatted-code">${this.escapeHtml(result.data || "No formatted code")}</pre>`;
+        }
+      } else {
+        if (outputContent) {
+          outputContent.innerHTML = `<div class="error-message">${this.escapeHtml(result.message || "Failed to format code")}</div>`;
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showError(`Failed to format code: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
+    }
+
+    // Setup source range interactions after content is loaded
+    this.setupSourceRangeInteractions();
+  }
+
   updateStageButtons(): void {
     const buttons = document.querySelectorAll(".stage-button");
     buttons.forEach((button) => {
@@ -1554,6 +1596,7 @@ class RocPlayground {
       AST: "parseBtn",
       CIR: "canBtn",
       TYPES: "typesBtn",
+      FORMATTED: "formattedBtn",
     };
     return mapping[view] || "diagnosticsBtn";
   }
@@ -2251,6 +2294,9 @@ class RocPlayground {
       case 'typesBtn':
         this.showTypes();
         break;
+      case 'formattedBtn':
+        this.showFormatted();
+        break;
     }
   }
 
@@ -2304,6 +2350,7 @@ declare global {
     showParseAst: () => void;
     showCanCir: () => void;
     showTypes: () => void;
+    showFormatted: () => void;
   }
 }
 
@@ -2320,4 +2367,5 @@ document.addEventListener("DOMContentLoaded", () => {
   window.showParseAst = () => playground.showParseAst();
   window.showCanCir = () => playground.showCanCir();
   window.showTypes = () => playground.showTypes();
+  window.showFormatted = () => playground.showFormatted();
 });
