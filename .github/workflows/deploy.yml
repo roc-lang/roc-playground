@@ -84,11 +84,14 @@ jobs:
           name: pr-build-${{ github.event.number }}
           path: ./dist
 
+      - name: Upload as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
       - name: Deploy PR Preview to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: pr-build-${{ github.event.number }}
 
       - name: Comment PR with preview URL
         uses: actions/github-script@v7
