@@ -4,6 +4,7 @@ import {
   getDocumentContent,
   updateDiagnosticsInView,
   updateEditorTheme,
+  createReadOnlyEditor,
 } from "./editor/cm6-setup";
 import { EditorView } from "@codemirror/view";
 import { createTypeHintTooltip } from "./editor/type-hints";
@@ -241,6 +242,7 @@ class RocPlayground {
   private isUpdatingView: boolean = false;
   private boundHandleMouseMove: ((e: MouseEvent) => void) | null = null;
   private boundHandleMouseUp: (() => void) | null = null;
+  private formattedCodeEditor: EditorView | null = null;
 
   constructor() {
     this.compileTimeout = null;
@@ -1333,6 +1335,7 @@ class RocPlayground {
   async showDiagnostics(): Promise<void> {
     currentView = "PROBLEMS";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     const outputContent = document.getElementById("outputContent");
 
@@ -1375,6 +1378,7 @@ class RocPlayground {
   async showTokens(): Promise<void> {
     currentView = "TOKENS";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1414,6 +1418,7 @@ class RocPlayground {
   async showParseAst(): Promise<void> {
     currentView = "AST";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1453,6 +1458,7 @@ class RocPlayground {
   async showCanCir(): Promise<void> {
     currentView = "CIR";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1492,6 +1498,7 @@ class RocPlayground {
   async showTypes(): Promise<void> {
     currentView = "TYPES";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1549,7 +1556,18 @@ class RocPlayground {
       const outputContent = document.getElementById("outputContent");
       if (result.status === "SUCCESS") {
         if (outputContent) {
-          outputContent.innerHTML = `<pre class="formatted-code">${this.escapeHtml(result.data || "No formatted code")}</pre>`;
+          outputContent.innerHTML = "";
+          
+          const themeAttr = document.documentElement.getAttribute("data-theme");
+          const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
+          
+          if (this.formattedCodeEditor) {
+            this.formattedCodeEditor.destroy();
+            this.formattedCodeEditor = null;
+          }
+          
+          const formattedCode = result.data || "No formatted code";
+          this.formattedCodeEditor = createReadOnlyEditor(outputContent, formattedCode, theme);
         }
       } else {
         if (outputContent) {
@@ -1565,6 +1583,13 @@ class RocPlayground {
 
     // Setup source range interactions after content is loaded
     this.setupSourceRangeInteractions();
+  }
+
+  private cleanupFormattedCodeEditor(): void {
+    if (this.formattedCodeEditor) {
+      this.formattedCodeEditor.destroy();
+      this.formattedCodeEditor = null;
+    }
   }
 
   updateStageButtons(): void {
@@ -1929,6 +1954,11 @@ class RocPlayground {
     // Update editor theme
     if (codeMirrorEditor) {
       updateEditorTheme(codeMirrorEditor, newTheme);
+    }
+    
+    // Update formatted code editor theme if it exists
+    if (this.formattedCodeEditor) {
+      updateEditorTheme(this.formattedCodeEditor, newTheme);
     }
   }
 
