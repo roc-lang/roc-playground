@@ -4,6 +4,7 @@ import {
   getDocumentContent,
   updateDiagnosticsInView,
   updateEditorTheme,
+  createReadOnlyEditor,
 } from "./editor/cm6-setup";
 import { EditorView } from "@codemirror/view";
 import { createTypeHintTooltip } from "./editor/type-hints";
@@ -128,7 +129,7 @@ const isIntent = {
 // Global state variables
 let wasmInterface: WasmInterface | null = null;
 let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
-let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" = "PROBLEMS";
+let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" = "PROBLEMS";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
@@ -241,6 +242,7 @@ class RocPlayground {
   private isUpdatingView: boolean = false;
   private boundHandleMouseMove: ((e: MouseEvent) => void) | null = null;
   private boundHandleMouseUp: (() => void) | null = null;
+  private formattedCodeEditor: EditorView | null = null;
 
   constructor() {
     this.compileTimeout = null;
@@ -282,6 +284,7 @@ class RocPlayground {
       this.setupUrlSharing();
       this.setupResizeHandle();
       this.setupModeToggle();
+      this.setupKeyboardShortcuts();
 
       currentState = "READY";
 
@@ -445,6 +448,8 @@ class RocPlayground {
         this.showCurrentView();
       }
 
+      this.updateStageButtons();
+
       // Update URL with compressed content
       this.updateUrlWithCompressedContent();
     } catch (error) {
@@ -533,6 +538,23 @@ class RocPlayground {
     replModeBtn?.addEventListener("click", () => {
       updateAppState({ mode: { type: AppModeType.REPL } });
       this.ensureReplMode();
+    });
+  }
+
+  setupKeyboardShortcuts(): void {
+    document.addEventListener("keydown", async (event: KeyboardEvent) => {
+      const isFormatShortcut = event.ctrlKey && event.shiftKey && event.key === "F";
+
+      if (isFormatShortcut && isMode.editor(appState.mode)) {
+        event.preventDefault();        
+        if (this.hasValidAst()) {
+          try {
+            await this.applyFormattedCodeToEditor();
+          } catch (error) {
+            console.error("Error formatting code via keyboard shortcut:", error);
+          }
+        }
+      }
     });
   }
 
@@ -1324,12 +1346,16 @@ class RocPlayground {
       case "TYPES":
         this.showTypes();
         break;
+      case "FORMATTED":
+        this.showFormatted();
+        break;
     }
   }
 
   async showDiagnostics(): Promise<void> {
     currentView = "PROBLEMS";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     const outputContent = document.getElementById("outputContent");
 
@@ -1372,6 +1398,7 @@ class RocPlayground {
   async showTokens(): Promise<void> {
     currentView = "TOKENS";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1411,6 +1438,7 @@ class RocPlayground {
   async showParseAst(): Promise<void> {
     currentView = "AST";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1450,6 +1478,7 @@ class RocPlayground {
   async showCanCir(): Promise<void> {
     currentView = "CIR";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1489,6 +1518,7 @@ class RocPlayground {
   async showTypes(): Promise<void> {
     currentView = "TYPES";
     this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
 
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
@@ -1525,6 +1555,114 @@ class RocPlayground {
     this.setupSourceRangeInteractions();
   }
 
+  async showFormatted(): Promise<void> {
+    currentView = "FORMATTED";
+    this.updateStageButtons();
+
+    if (!wasmInterface) {
+      this.showError("WASM module not loaded");
+      return;
+    }
+
+    try {
+      this.isUpdatingView = true;
+
+      // Ensure source is compiled/loaded before formatting
+      const currentCode = getDocumentContent(codeMirrorEditor);
+      await this.compileCode(currentCode, true);
+
+      const result = await wasmInterface.formatCode();
+
+      const outputContent = document.getElementById("outputContent");
+      if (result.status === "SUCCESS") {
+        if (outputContent) {
+          outputContent.innerHTML = "";
+          
+          const themeAttr = document.documentElement.getAttribute("data-theme");
+          const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
+          
+          if (this.formattedCodeEditor) {
+            this.formattedCodeEditor.destroy();
+            this.formattedCodeEditor = null;
+          }
+          
+          const formattedCode = result.data || "No formatted code";
+          this.formattedCodeEditor = createReadOnlyEditor(outputContent, formattedCode, theme);
+        }
+      } else {
+        if (outputContent) {
+          outputContent.innerHTML = `<div class="error-message">${this.escapeHtml(result.message || "Failed to format code")}</div>`;
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showError(`Failed to format code: ${message}`);
+    } finally {
+      this.isUpdatingView = false;
+    }
+
+    // Setup source range interactions after content is loaded
+    this.setupSourceRangeInteractions();
+  }
+
+  private cleanupFormattedCodeEditor(): void {
+    if (this.formattedCodeEditor) {
+      this.formattedCodeEditor.destroy();
+      this.formattedCodeEditor = null;
+    }
+  }
+
+  async applyFormattedCodeToEditor(): Promise<void> {
+    if (!codeMirrorEditor || !wasmInterface) {
+      this.showError("Editor or WASM interface not available");
+      return;
+    }
+
+    const formatButton = document.querySelector(".format-button") as HTMLButtonElement;
+
+    try {
+      if (formatButton) {
+        formatButton.disabled = true;
+      }
+
+      // If we already have the formatted code editor with content, use it
+      if (this.formattedCodeEditor) {
+        const formattedContent = getDocumentContent(this.formattedCodeEditor);
+        setDocumentContent(codeMirrorEditor, formattedContent);
+        this.setStatus("Formatted code applied to editor");
+        this.compileCode(formattedContent);
+        return;
+      }
+
+      this.setStatus("Fetching formatted code...");
+      
+      const currentCode = getDocumentContent(codeMirrorEditor);
+      await this.compileCode(currentCode, true);
+
+      const result = await wasmInterface.formatCode();
+
+      if (result.status === "SUCCESS") {
+        const formattedCode = result.data || currentCode;
+        
+        setDocumentContent(codeMirrorEditor, formattedCode);
+        
+        this.setStatus("Formatted code applied to editor");
+
+        this.compileCode(formattedCode);
+      } else {
+        this.showError(`Failed to format code: ${result.message || "Unknown error"}`);
+      }
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showError(`Failed to apply formatted code: ${message}`);
+    } finally {
+      if (formatButton) {
+        formatButton.disabled = false;
+      }
+    }
+  }
+
   updateStageButtons(): void {
     const buttons = document.querySelectorAll(".stage-button");
     buttons.forEach((button) => {
@@ -1545,6 +1683,26 @@ class RocPlayground {
         outputContent.setAttribute("aria-labelledby", activeButton.id);
       }
     }
+
+    // Show/hide format button based on whether we have a valid AST
+    const formatButton = document.querySelector(".format-button") as HTMLButtonElement;
+    if (formatButton) {
+      if (this.hasValidAst()) {
+        formatButton.disabled = false;
+      } else {
+        formatButton.disabled = true;
+      }
+    }
+  }
+
+  hasValidAst(): boolean {
+    // Must have a successful compilation result
+    if (!this.lastCompileResult || this.lastCompileResult.status !== "SUCCESS") {
+      return false;
+    }
+
+    return lastDiagnostics.every(diagnostic => 
+      diagnostic.severity != "error" || !diagnostic.message.toLowerCase().includes("parse"));
   }
 
   getButtonId(view: string): string {
@@ -1554,6 +1712,7 @@ class RocPlayground {
       AST: "parseBtn",
       CIR: "canBtn",
       TYPES: "typesBtn",
+      FORMATTED: "formattedBtn",
     };
     return mapping[view] || "diagnosticsBtn";
   }
@@ -1713,7 +1872,7 @@ class RocPlayground {
       this.restoreFromHash();
     });
 
-    this.addShareButton();
+    this.addHeaderButtons();
     this.setupTabNavigation();
   }
 
@@ -1886,6 +2045,11 @@ class RocPlayground {
     // Update editor theme
     if (codeMirrorEditor) {
       updateEditorTheme(codeMirrorEditor, newTheme);
+    }
+    
+    // Update formatted code editor theme if it exists
+    if (this.formattedCodeEditor) {
+      updateEditorTheme(this.formattedCodeEditor, newTheme);
     }
   }
 
@@ -2165,10 +2329,40 @@ class RocPlayground {
     }
   }
 
-  addShareButton(): void {
+  addHeaderButtons(): void {
     const editorHeader = document.querySelector(".editor-header");
     if (editorHeader) {
-      let shareButton = editorHeader.querySelector(
+      // Create or get the button container
+      let buttonContainer = editorHeader.querySelector(
+        ".header-buttons-container",
+      ) as HTMLDivElement;
+      if (!buttonContainer) {
+        buttonContainer = document.createElement("div");
+        buttonContainer.className = "header-buttons-container";
+        editorHeader.appendChild(buttonContainer);
+      }
+
+      // Add format button
+      let formatButton = buttonContainer.querySelector(
+        ".format-button",
+      ) as HTMLButtonElement;
+      if (!formatButton) {
+        formatButton = document.createElement("button");
+        formatButton.className = "format-button";
+        formatButton.innerHTML = "format code";
+        formatButton.title = "Apply formatted code to editor (Ctrl+Shift+F)";
+        formatButton.onclick = async () => {
+          try {
+            await this.applyFormattedCodeToEditor();
+          } catch (error) {
+            console.error("Error applying formatted code:", error);
+          }
+        };
+        buttonContainer.appendChild(formatButton);
+      }
+
+      // Add share button
+      let shareButton = buttonContainer.querySelector(
         ".share-button",
       ) as HTMLButtonElement;
       if (!shareButton) {
@@ -2177,7 +2371,7 @@ class RocPlayground {
         shareButton.innerHTML = "share link";
         shareButton.title = "Copy shareable link to clipboard";
         shareButton.onclick = () => this.copyShareLink();
-        editorHeader.appendChild(shareButton);
+        buttonContainer.appendChild(shareButton);
       }
     }
   }
@@ -2251,6 +2445,9 @@ class RocPlayground {
       case 'typesBtn':
         this.showTypes();
         break;
+      case 'formattedBtn':
+        this.showFormatted();
+        break;
     }
   }
 
@@ -2304,6 +2501,7 @@ declare global {
     showParseAst: () => void;
     showCanCir: () => void;
     showTypes: () => void;
+    showFormatted: () => void;
   }
 }
 
@@ -2320,4 +2518,5 @@ document.addEventListener("DOMContentLoaded", () => {
   window.showParseAst = () => playground.showParseAst();
   window.showCanCir = () => playground.showCanCir();
   window.showTypes = () => playground.showTypes();
+  window.showFormatted = () => playground.showFormatted();
 });

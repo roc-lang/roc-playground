@@ -338,6 +338,27 @@ export function createReadOnlyEditor(
     themeCompartment.of(theme === "dark" ? oneDark : []),
     EditorState.readOnly.of(true),
     EditorViewCore.editable.of(false),
+    
+    EditorView.theme({
+      "&": {
+        fontSize: "14px",
+        fontFamily:
+          "'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace",
+      },
+      ".cm-content": {
+        padding: "16px",
+      },
+      ".cm-editor": {
+        borderRadius: "4px",
+        border: "1px solid var(--border-color, #e1e5e9)",
+      },
+      ".cm-scroller": {
+        borderRadius: "4px",
+      },
+      ".cm-line": {
+        lineHeight: "1.4",
+      },
+    }),
   ];
 
   const state = EditorState.create({
