@@ -546,7 +546,7 @@ class RocPlayground {
       const isFormatShortcut = event.ctrlKey && event.shiftKey && event.key === "F";
 
       if (isFormatShortcut && isMode.editor(appState.mode)) {
-        event.preventDefault();        
+        event.preventDefault();
         if (this.hasValidAst()) {
           try {
             await this.applyFormattedCodeToEditor();
@@ -1209,10 +1209,9 @@ class RocPlayground {
       `History Statistics:<br><br>` +
       `Total commands: ${stats.totalEntries}<br>` +
       `Unique commands: ${stats.uniqueCommands}<br>` +
-      `Duplicate ratio: ${
-        stats.totalEntries > 0
-          ? ((1 - stats.uniqueCommands / stats.totalEntries) * 100).toFixed(1)
-          : 0
+      `Duplicate ratio: ${stats.totalEntries > 0
+        ? ((1 - stats.uniqueCommands / stats.totalEntries) * 100).toFixed(1)
+        : 0
       }%<br>`;
 
     if (stats.mostRecent) {
@@ -1222,7 +1221,7 @@ class RocPlayground {
 
       this.addReplHistoryEntry(
         statsText +
-          `<br>Most recent: "${this.escapeHtml(stats.mostRecent.command)}" (${timeText})`,
+        `<br>Most recent: "${this.escapeHtml(stats.mostRecent.command)}" (${timeText})`,
         "definition",
         undefined,
         undefined,
@@ -1262,7 +1261,7 @@ class RocPlayground {
     // Show a user-friendly message
     this.addReplHistoryEntry(
       "⚠️ The REPL encountered an error and needs to restart.<br>" +
-        "Reinitializing REPL state...",
+      "Reinitializing REPL state...",
       "definition",
       undefined,
       undefined,
@@ -1577,15 +1576,15 @@ class RocPlayground {
       if (result.status === "SUCCESS") {
         if (outputContent) {
           outputContent.innerHTML = "";
-          
+
           const themeAttr = document.documentElement.getAttribute("data-theme");
           const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
-          
+
           if (this.formattedCodeEditor) {
             this.formattedCodeEditor.destroy();
             this.formattedCodeEditor = null;
           }
-          
+
           const formattedCode = result.data || "No formatted code";
           this.formattedCodeEditor = createReadOnlyEditor(outputContent, formattedCode, theme);
         }
@@ -1603,6 +1602,35 @@ class RocPlayground {
 
     // Setup source range interactions after content is loaded
     this.setupSourceRangeInteractions();
+  }
+
+  async evaluateTests(): Promise<void> {
+    if (!wasmInterface) {
+      this.showError("WASM module not loaded");
+      return;
+    }
+
+    try {
+      // Ensure source is compiled/loaded before evaluating tests
+      const currentCode = getDocumentContent(codeMirrorEditor);
+      await this.compileCode(currentCode, true);
+
+      const result = await wasmInterface.evaluateTests();
+
+      const testOutput = document.getElementById("testOutput");
+      if (result.status === "SUCCESS") {
+        if (testOutput) {
+          testOutput.innerHTML = `<div class="test-output">${result.data || "No tests"}</div>`;
+        }
+      } else {
+        if (testOutput) {
+          testOutput.innerHTML = `<div class="error-message">${this.escapeHtml(result.message || "Failed evaluate tests")}</div>`;
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showError(`Failed to evaluate tests: ${message}`);
+    }
   }
 
   private cleanupFormattedCodeEditor(): void {
@@ -1635,7 +1663,7 @@ class RocPlayground {
       }
 
       this.setStatus("Fetching formatted code...");
-      
+
       const currentCode = getDocumentContent(codeMirrorEditor);
       await this.compileCode(currentCode, true);
 
@@ -1643,16 +1671,16 @@ class RocPlayground {
 
       if (result.status === "SUCCESS") {
         const formattedCode = result.data || currentCode;
-        
+
         setDocumentContent(codeMirrorEditor, formattedCode);
-        
+
         this.setStatus("Formatted code applied to editor");
 
         this.compileCode(formattedCode);
       } else {
         this.showError(`Failed to format code: ${result.message || "Unknown error"}`);
       }
-      
+
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showError(`Failed to apply formatted code: ${message}`);
@@ -1676,7 +1704,7 @@ class RocPlayground {
       activeButton.classList.add("active");
       activeButton.setAttribute("aria-selected", "true");
       activeButton.setAttribute("tabindex", "0");
-      
+
       // Update the output panel's aria-labelledby
       const outputContent = document.getElementById("outputContent");
       if (outputContent) {
@@ -1701,7 +1729,7 @@ class RocPlayground {
       return false;
     }
 
-    return lastDiagnostics.every(diagnostic => 
+    return lastDiagnostics.every(diagnostic =>
       diagnostic.severity != "error" || !diagnostic.message.toLowerCase().includes("parse"));
   }
 
@@ -1764,18 +1792,18 @@ class RocPlayground {
       } else {
         const errorText = totalErrors === 1 ? 'error' : 'errors';
         const warningText = totalWarnings === 1 ? 'warning' : 'warnings';
-        
+
         let errorPart = "";
         let warningPart = "";
-        
+
         if (totalErrors > 0) {
           errorPart = `<span style="color: var(--color-error); font-weight: bold;">${totalErrors}</span> ${errorText}`;
         }
-        
+
         if (totalWarnings > 0) {
           warningPart = `<span style="color: var(--color-warning); font-weight: bold;">${totalWarnings}</span> ${warningText}`;
         }
-        
+
         if (errorPart && warningPart) {
           summaryText += `${errorPart} - ${warningPart}`;
         } else {
@@ -2046,7 +2074,7 @@ class RocPlayground {
     if (codeMirrorEditor) {
       updateEditorTheme(codeMirrorEditor, newTheme);
     }
-    
+
     // Update formatted code editor theme if it exists
     if (this.formattedCodeEditor) {
       updateEditorTheme(this.formattedCodeEditor, newTheme);
@@ -2342,6 +2370,25 @@ class RocPlayground {
         editorHeader.appendChild(buttonContainer);
       }
 
+      // Add evaluate tests button
+      let testsButton = buttonContainer.querySelector(
+        ".format-button",
+      ) as HTMLButtonElement;
+      if (!testsButton) {
+        testsButton = document.createElement("button");
+        testsButton.className = "tests-button";
+        testsButton.innerHTML = "evaluate tests";
+        testsButton.title = "Evaluate all tests";
+        testsButton.onclick = async () => {
+          try {
+            await this.evaluateTests();
+          } catch (error) {
+            console.error("Error applying formatted code:", error);
+          }
+        };
+        buttonContainer.appendChild(testsButton);
+      }
+
       // Add format button
       let formatButton = buttonContainer.querySelector(
         ".format-button",
@@ -2427,7 +2474,7 @@ class RocPlayground {
 
   private activateTab(tab: HTMLElement): void {
     const tabId = tab.id;
-    
+
     // Map tab IDs to their corresponding methods
     switch (tabId) {
       case 'diagnosticsBtn':
