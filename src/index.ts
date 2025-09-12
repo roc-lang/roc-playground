@@ -129,7 +129,7 @@ const isIntent = {
 // Global state variables
 let wasmInterface: WasmInterface | null = null;
 let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
-let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" = "PROBLEMS";
+let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" | "TESTS" = "PROBLEMS";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
@@ -1348,6 +1348,9 @@ class RocPlayground {
       case "FORMATTED":
         this.showFormatted();
         break;
+      case "TESTS":
+        this.showTests();
+        break;
     }
   }
 
@@ -1604,7 +1607,10 @@ class RocPlayground {
     this.setupSourceRangeInteractions();
   }
 
-  async evaluateTests(): Promise<void> {
+  async showTests(): Promise<void> {
+    currentView = "TESTS";
+    this.updateStageButtons();
+
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
       return;
@@ -1617,14 +1623,14 @@ class RocPlayground {
 
       const result = await wasmInterface.evaluateTests();
 
-      const testOutput = document.getElementById("testOutput");
+      const testOutput = document.getElementById("outputContent");
       if (result.status === "SUCCESS") {
         if (testOutput) {
           testOutput.innerHTML = `<div class="test-output">${result.data || "No tests"}</div>`;
         }
       } else {
         if (testOutput) {
-          testOutput.innerHTML = `<div class="error-message">${this.escapeHtml(result.message || "Failed evaluate tests")}</div>`;
+          this.showError(result.message || "Failed evaluate tests");
         }
       }
     } catch (error) {
@@ -1658,7 +1664,7 @@ class RocPlayground {
         const formattedContent = getDocumentContent(this.formattedCodeEditor);
         setDocumentContent(codeMirrorEditor, formattedContent);
         this.setStatus("Formatted code applied to editor");
-        this.compileCode(formattedContent);
+        await this.compileCode(formattedContent);
         return;
       }
 
@@ -1676,7 +1682,7 @@ class RocPlayground {
 
         this.setStatus("Formatted code applied to editor");
 
-        this.compileCode(formattedCode);
+        await this.compileCode(formattedCode);
       } else {
         this.showError(`Failed to format code: ${result.message || "Unknown error"}`);
       }
@@ -1741,6 +1747,7 @@ class RocPlayground {
       CIR: "canBtn",
       TYPES: "typesBtn",
       FORMATTED: "formattedBtn",
+      TESTS: "testsBtn",
     };
     return mapping[view] || "diagnosticsBtn";
   }
@@ -2370,25 +2377,6 @@ class RocPlayground {
         editorHeader.appendChild(buttonContainer);
       }
 
-      // Add evaluate tests button
-      let testsButton = buttonContainer.querySelector(
-        ".format-button",
-      ) as HTMLButtonElement;
-      if (!testsButton) {
-        testsButton = document.createElement("button");
-        testsButton.className = "tests-button";
-        testsButton.innerHTML = "evaluate tests";
-        testsButton.title = "Evaluate all tests";
-        testsButton.onclick = async () => {
-          try {
-            await this.evaluateTests();
-          } catch (error) {
-            console.error("Error applying formatted code:", error);
-          }
-        };
-        buttonContainer.appendChild(testsButton);
-      }
-
       // Add format button
       let formatButton = buttonContainer.querySelector(
         ".format-button",
@@ -2494,6 +2482,9 @@ class RocPlayground {
         break;
       case 'formattedBtn':
         this.showFormatted();
+        break;
+      case 'testsBtn':
+        this.showTests();
         break;
     }
   }
