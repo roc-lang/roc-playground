@@ -938,6 +938,7 @@ body {
     justify-content: space-between;
     align-items: center;
     height: var(--header-height);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .output-actions {
@@ -955,7 +956,9 @@ body {
 
 .stage-scroll-btn {
     display: none;
-    padding: var(--space-2) var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
     border: none;
     border-bottom: 2px solid var(--border-subtle);
     background-color: transparent;
@@ -986,15 +989,12 @@ body {
 
 .stage-tabs {
     display: flex;
-    gap: 0;
-    position: relative;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-default) var(--bg-secondary);
+    overflow-x: scroll;
     flex: 1;
     min-width: 0;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    background: transparent;
 }
 
 .stage-tabs::-webkit-scrollbar {
@@ -1006,6 +1006,7 @@ body {
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     border: none;
+    z-index: 1;
     border-bottom: 2px solid var(--border-subtle);
     background-color: transparent;
     color: var(--text-secondary);
