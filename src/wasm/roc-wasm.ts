@@ -77,12 +77,13 @@ export interface WasmInterface {
     line: number,
     ch: number,
   ) => Promise<WasmResponse | null>;
+  evaluateTests: () => Promise<WasmResponse>;
   isReady: () => boolean;
   getMemoryUsage: () => number;
   sendMessage: (message: WasmMessage) => Promise<WasmResponse>;
   getDebugLog: () => string;
   clearDebugLog: () => void;
-  
+
   // REPL functionality
   initRepl: () => Promise<WasmResponse>;
   replStep: (input: string) => Promise<WasmResponse>;
@@ -135,7 +136,7 @@ export async function initializeWasm(): Promise<{
     wasmMemory = wasmModule.memory;
     debugLog("WASM module instantiated");
     debugLog("Available WASM exports:", Object.keys(wasmModule));
-    
+
     const requiredExports = [
       "init",
       "processAndRespond",
@@ -199,6 +200,7 @@ function createWasmInterface(): WasmInterface {
     canonicalize: () => sendMessageQueued({ type: "QUERY_CIR" }),
     getTypes: () => sendMessageQueued({ type: "QUERY_TYPES" }),
     formatCode: () => sendMessageQueued({ type: "QUERY_FORMATTED" }),
+    evaluateTests: () => sendMessageQueued({ type: "EVALUATE_TESTS" }),
     getHoverInfo: async (identifier, line, ch) => {
       try {
         // The WASM module expects a 1-based column, but editor tooling
@@ -219,7 +221,7 @@ function createWasmInterface(): WasmInterface {
     sendMessage: sendMessageQueued,
     getDebugLog: () => wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "Debug log not available.",
     clearDebugLog: () => wasmModule?.clearDebugLog ? wasmModule.clearDebugLog() : undefined,
-    
+
     // REPL functionality
     initRepl: () => sendMessageQueued({ type: "INIT_REPL" }),
     replStep: (input) => sendMessageQueued({ type: "REPL_STEP", input }),
@@ -275,7 +277,7 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
   try {
     const messageStr = JSON.stringify(message);
     const messageBytes = new TextEncoder().encode(messageStr);
-    
+
     debugLog(`[WASM Debug] Sending JSON message: ${messageStr}`);
     debugLog(`[WASM Debug] Message bytes length: ${messageBytes.length}`);
 
@@ -285,7 +287,7 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     if (!messagePtr || messagePtr === 0) {
       throw new Error("Failed to allocate message memory in WASM");
     }
-    
+
     // Copy message to WASM memory
     new Uint8Array(wasmMemory.buffer).set(messageBytes, messagePtr);
     debugLog(`[WASM Debug] Copied message to WASM memory`);
@@ -306,7 +308,7 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     // Read the null-terminated response string from WASM memory
     const responseMemory = new Uint8Array(wasmMemory.buffer);
     let responseLength = 0;
-    
+
     // Find null terminator
     for (let i = responsePtr; i < wasmMemory.buffer.byteLength; i++) {
       if (responseMemory[i] === 0) {
@@ -321,7 +323,7 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
 
     const responseBytes = responseMemory.slice(responsePtr, responsePtr + responseLength);
     const responseStr = new TextDecoder().decode(responseBytes);
-    
+
     debugLog(`[WASM Debug] Response string: ${responseStr}`);
 
     // Parse JSON response
@@ -336,16 +338,16 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     try {
       const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "";
       if (wasmDebugLog) {
-          console.log("%c--- WASM Internal Debug Log (Success) ---", "color: #00a; font-weight: bold;");
-          console.log(wasmDebugLog);
-          console.log("%c-----------------------------------------", "color: #00a; font-weight: bold;");
+        console.log("%c--- WASM Internal Debug Log (Success) ---", "color: #00a; font-weight: bold;");
+        console.log(wasmDebugLog);
+        console.log("%c-----------------------------------------", "color: #00a; font-weight: bold;");
       }
     } catch (logError) {
       console.error("Failed to retrieve WASM debug log on success:", logError);
     } finally {
       // Always clear the log after we've read it
       if (wasmModule?.clearDebugLog) {
-          wasmModule.clearDebugLog();
+        wasmModule.clearDebugLog();
       }
     }
 
@@ -362,9 +364,9 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
       try {
         const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "Debug log not available.";
         if (wasmDebugLog) {
-            console.log("%c--- WASM Internal Debug Log ---", "color: #f5a; font-weight: bold;");
-            console.log(wasmDebugLog);
-            console.log("%c-------------------------------", "color: #f5a; font-weight: bold;");
+          console.log("%c--- WASM Internal Debug Log ---", "color: #f5a; font-weight: bold;");
+          console.log(wasmDebugLog);
+          console.log("%c-------------------------------", "color: #f5a; font-weight: bold;");
         }
       } catch (logError) {
         console.error("Failed to retrieve WASM debug log:", logError);
