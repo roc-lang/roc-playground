@@ -1829,22 +1829,11 @@ class RocPlayground {
   }
 
   updateDiagnosticSummary(): void {
-    const editorHeader = document.querySelector(".editor-header");
-
-    // Remove existing summary and time elements
-    const existingSummary = editorHeader?.querySelector(".diagnostic-summary");
-    const existingTimeText = editorHeader?.querySelector(".compile-time");
-    if (existingSummary) {
-      existingSummary.remove();
-    }
-    if (existingTimeText) {
-      existingTimeText.remove();
-    }
 
     // Always show summary after compilation (when timing info is available)
     if (lastCompileTime !== null) {
-      const summaryDiv = document.createElement("div");
-      summaryDiv.className = "diagnostic-summary";
+      const summaryDiv = document.getElementById("diagnosticSummary");
+      if (!summaryDiv) return;
 
       let totalErrors = 0;
       let totalWarnings = 0;
@@ -1898,8 +1887,8 @@ class RocPlayground {
 
       // Create separate time element
       if (lastCompileTime !== null) {
-        const timeDiv = document.createElement("div");
-        timeDiv.className = "compile-time";
+        const timeDiv = document.getElementById("compileTime");
+        if (!timeDiv) return;
         let timeText;
         if (lastCompileTime < 1000) {
           const ms = lastCompileTime.toFixed(1);
@@ -1909,10 +1898,7 @@ class RocPlayground {
           timeText = seconds.endsWith('.0') ? `${Math.round(lastCompileTime / 1000)}s` : `${seconds}s`;
         }
         timeDiv.innerHTML = `⚡ ${timeText}`;
-        editorHeader?.appendChild(timeDiv);
       }
-
-      editorHeader?.appendChild(summaryDiv);
     }
   }
 
@@ -2441,18 +2427,9 @@ class RocPlayground {
   }
 
   addHeaderButtons(): void {
-    const editorHeader = document.querySelector(".editor-header");
-    if (editorHeader) {
-      // Create or get the button container
-      let buttonContainer = editorHeader.querySelector(
-        ".header-buttons-container",
-      ) as HTMLDivElement;
-      if (!buttonContainer) {
-        buttonContainer = document.createElement("div");
-        buttonContainer.className = "header-buttons-container";
-        editorHeader.appendChild(buttonContainer);
-      }
-
+    // Get the button container
+    let buttonContainer = document.getElementById("headerButtonsContainer") as HTMLDivElement;
+    if (buttonContainer) {
       // Add format button
       let formatButton = buttonContainer.querySelector(
         ".format-button",

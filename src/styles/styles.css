@@ -678,20 +678,18 @@ body {
 
 .editor-header {
     background-color: var(--bg-secondary);
-    padding: var(--space-4) var(--space-5);
+    padding: 0 var(--space-5);
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-subtle);
     height: var(--header-height);
-    position: relative;
 }
 
 .header-buttons-container {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    margin-left: auto;
 }
 
 .editor {
@@ -1140,41 +1138,12 @@ body {
     font-size: var(--text-sm);
 }
 
-.diagnostic-hint {
-    font-size: var(--text-sm);
-    color: var(--text-tertiary);
-    font-style: italic;
-    margin-top: var(--space-2);
-}
-
 .diagnostic-summary {
-    padding: var(--space-3);
-    background-color: var(--bg-tertiary);
-    margin-bottom: var(--space-4);
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
     color: var(--text-secondary);
 }
 
-.editor-header .diagnostic-summary {
-    padding: var(--space-1) var(--space-2);
-    margin: 0;
-    font-size: var(--text-base);
-    background-color: transparent;
-    border: none;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.editor-header .compile-time {
-    padding: 0;
-    margin: 0;
-    font-size: var(--text-base);
-    background-color: transparent;
-    border: none;
-    opacity: 0.8;
-    order: -1;
+.compile-time {
+    color: var(--text-secondary);
 }
 
 .report {
