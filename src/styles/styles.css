@@ -936,7 +936,6 @@ body {
 .output-header {
     background-color: var(--bg-secondary);
     padding: var(--space-4) var(--space-5);
-    border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -949,16 +948,59 @@ body {
     gap: var(--space-3);
 }
 
+.stage-tabs-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.stage-scroll-btn {
+    display: none;
+    padding: var(--space-2) var(--space-2);
+    border: none;
+    border-bottom: 2px solid var(--border-subtle);
+    background-color: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-out);
+    position: relative;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.stage-scroll-btn:hover:not(:disabled) {
+    background: var(--state-hover);
+    color: var(--text-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.stage-scroll-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.stage-scroll-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 .stage-tabs {
     display: flex;
     gap: 0;
-    border-bottom: 2px solid var(--border-subtle);
     position: relative;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) var(--bg-secondary);
+    flex: 1;
+    min-width: 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
-.stage-buttons {
-    display: flex;
-    gap: 0;
+.stage-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .stage-button {
@@ -966,13 +1008,14 @@ body {
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 2px solid var(--border-subtle);
     background-color: transparent;
     color: var(--text-secondary);
     cursor: pointer;
     transition: all var(--duration-base) var(--ease-out);
     position: relative;
-    margin-bottom: -2px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .stage-button:hover:not(:disabled) {
