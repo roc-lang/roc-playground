@@ -58,7 +58,9 @@
             </div>
             <div class="editor-container">
                 <div class="editor-header">
-                    <!-- Diagnostic summary will be inserted here by JavaScript -->
+                    <div class="compile-time" id="compileTime"></div>
+                    <div class="diagnostic-summary" id="diagnosticSummary"></div>
+                    <div class="header-buttons-container" id="headerButtonsContainer"></div>
                 </div>
                 <div class="editor" id="editor"></div>
             </div>
@@ -67,76 +69,98 @@
 
             <div class="output-container">
                 <div class="output-header">
-                    <div class="stage-tabs" role="tablist">
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="true"
-                            aria-controls="problems-panel"
-                            id="diagnosticsBtn"
-                            tabindex="0"
-                        >
-                            PROBLEMS
+                    <div class="stage-tabs-container">
+                        <button class="stage-scroll-btn stage-scroll-left" id="scrollLeftBtn" aria-label="Scroll tabs left">
+                            <svg width="18" height="18"
+                                viewBox="0 0 18 18"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                                focusable="false"
+                                style="vertical-align: middle;">
+                                    <polygon points="12,3 6,9 12,15" fill="currentColor"/>
+                            </svg>
                         </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="tokens-panel"
-                            id="tokensBtn"
-                            tabindex="-1"
-                        >
-                            TOKENS
-                        </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="ast-panel"
-                            id="parseBtn"
-                            tabindex="-1"
-                        >
-                            AST
-                        </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="cir-panel"
-                            id="canBtn"
-                            tabindex="-1"
-                        >
-                            CIR
-                        </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="types-panel"
-                            id="typesBtn"
-                            tabindex="-1"
-                        >
-                            TYPES
-                        </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="formatted-panel"
-                            id="formattedBtn"
-                            tabindex="-1"
-                        >
-                            FORMATTED
-                        </button>
-                        <button
-                            class="stage-button"
-                            role="tab"
-                            aria-selected="false"
-                            aria-controls="tests-panel"
-                            id="testsBtn"
-                            tabindex="-1"
-                        >
-                            TESTS
+                        <div class="stage-tabs" role="tablist" id="stageTabs">
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="true"
+                                aria-controls="problems-panel"
+                                id="diagnosticsBtn"
+                                tabindex="0"
+                            >
+                                PROBLEMS
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="tokens-panel"
+                                id="tokensBtn"
+                                tabindex="-1"
+                            >
+                                TOKENS
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="ast-panel"
+                                id="parseBtn"
+                                tabindex="-1"
+                            >
+                                AST
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="cir-panel"
+                                id="canBtn"
+                                tabindex="-1"
+                            >
+                                CIR
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="types-panel"
+                                id="typesBtn"
+                                tabindex="-1"
+                            >
+                                TYPES
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="formatted-panel"
+                                id="formattedBtn"
+                                tabindex="-1"
+                            >
+                                FORMATTED
+                            </button>
+                            <button
+                                class="stage-button"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="tests-panel"
+                                id="testsBtn"
+                                tabindex="-1"
+                            >
+                                TESTS
+                            </button>
+                        </div>
+                        <button class="stage-scroll-btn stage-scroll-right" id="scrollRightBtn" aria-label="Scroll tabs right">
+                            <svg width="18" height="18"
+                                viewBox="0 0 18 18"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                                focusable="false"
+                                style="vertical-align: middle;">
+                                    <polygon points="6,3 12,9 6,15" fill="currentColor"/>
+                            </svg>
                         </button>
                     </div>
                 </div>

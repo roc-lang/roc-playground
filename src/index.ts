@@ -284,6 +284,7 @@ class RocPlayground {
       this.setupUrlSharing();
       this.setupResizeHandle();
       this.setupModeToggle();
+      this.setupStageTabs();
       this.setupKeyboardShortcuts();
 
       currentState = "READY";
@@ -556,6 +557,53 @@ class RocPlayground {
         }
       }
     });
+  }
+
+  setupStageTabs(): void {
+    const stageTabs = document.getElementById("stageTabs");
+    const scrollLeftBtn = document.getElementById("scrollLeftBtn");
+    const scrollRightBtn = document.getElementById("scrollRightBtn");
+
+    if (!stageTabs || !scrollLeftBtn || !scrollRightBtn) return;
+
+    const checkScrollButtons = () => {
+      const hasOverflow = stageTabs.scrollWidth > stageTabs.clientWidth;
+      const canScrollLeft = stageTabs.scrollLeft > 0;
+      const canScrollRight = stageTabs.scrollLeft < (stageTabs.scrollWidth - stageTabs.clientWidth);
+
+      // Show buttons whenever there's overflow, but disable them when at limits
+      scrollLeftBtn.style.display = hasOverflow ? "flex" : "none";
+      scrollRightBtn.style.display = hasOverflow ? "flex" : "none";
+
+      // Disable buttons when at scroll limits
+      (scrollLeftBtn as HTMLButtonElement).disabled = !canScrollLeft;
+      (scrollRightBtn as HTMLButtonElement).disabled = !canScrollRight;
+    };
+
+    const scrollAmount = 120; // pixels to scroll per click
+
+    scrollLeftBtn.addEventListener("click", () => {
+      stageTabs.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+    });
+
+    scrollRightBtn.addEventListener("click", () => {
+      stageTabs.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    });
+
+    // Check scroll buttons on scroll
+    stageTabs.addEventListener("scroll", checkScrollButtons);
+
+    // Check scroll buttons on resize
+    window.addEventListener("resize", checkScrollButtons);
+
+    // Initial check
+    checkScrollButtons();
+
+    // Also check when content changes (e.g., when tabs are added/removed)
+    const observer = new ResizeObserver(() => {
+      checkScrollButtons();
+    });
+    observer.observe(stageTabs);
   }
 
   async ensureEditorMode(): Promise<void> {
@@ -1716,6 +1764,9 @@ class RocPlayground {
       if (outputContent) {
         outputContent.setAttribute("aria-labelledby", activeButton.id);
       }
+
+      // Ensure the active tab is visible
+      this.scrollToActiveTab(activeButton);
     }
 
     // Show/hide format button based on whether we have a valid AST
@@ -1726,6 +1777,31 @@ class RocPlayground {
       } else {
         formatButton.disabled = true;
       }
+    }
+  }
+
+  scrollToActiveTab(activeButton: Element): void {
+    const stageTabs = document.getElementById("stageTabs");
+    if (!stageTabs) return;
+
+    const tabsRect = stageTabs.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+
+    // Check if button is visible within the tabs container
+    const isVisible = buttonRect.left >= tabsRect.left && buttonRect.right <= tabsRect.right;
+
+    if (!isVisible) {
+      // Calculate scroll position to center the active tab
+      const buttonLeft = (activeButton as HTMLElement).offsetLeft;
+      const buttonWidth = buttonRect.width;
+      const tabsWidth = tabsRect.width;
+
+      const targetScrollLeft = buttonLeft - (tabsWidth / 2) + (buttonWidth / 2);
+
+      stageTabs.scrollTo({
+        left: Math.max(0, targetScrollLeft),
+        behavior: "smooth"
+      });
     }
   }
 
@@ -1753,22 +1829,11 @@ class RocPlayground {
   }
 
   updateDiagnosticSummary(): void {
-    const editorHeader = document.querySelector(".editor-header");
-
-    // Remove existing summary and time elements
-    const existingSummary = editorHeader?.querySelector(".diagnostic-summary");
-    const existingTimeText = editorHeader?.querySelector(".compile-time");
-    if (existingSummary) {
-      existingSummary.remove();
-    }
-    if (existingTimeText) {
-      existingTimeText.remove();
-    }
 
     // Always show summary after compilation (when timing info is available)
     if (lastCompileTime !== null) {
-      const summaryDiv = document.createElement("div");
-      summaryDiv.className = "diagnostic-summary";
+      const summaryDiv = document.getElementById("diagnosticSummary");
+      if (!summaryDiv) return;
 
       let totalErrors = 0;
       let totalWarnings = 0;
@@ -1822,8 +1887,8 @@ class RocPlayground {
 
       // Create separate time element
       if (lastCompileTime !== null) {
-        const timeDiv = document.createElement("div");
-        timeDiv.className = "compile-time";
+        const timeDiv = document.getElementById("compileTime");
+        if (!timeDiv) return;
         let timeText;
         if (lastCompileTime < 1000) {
           const ms = lastCompileTime.toFixed(1);
@@ -1833,10 +1898,7 @@ class RocPlayground {
           timeText = seconds.endsWith('.0') ? `${Math.round(lastCompileTime / 1000)}s` : `${seconds}s`;
         }
         timeDiv.innerHTML = `⚡ ${timeText}`;
-        editorHeader?.appendChild(timeDiv);
       }
-
-      editorHeader?.appendChild(summaryDiv);
     }
   }
 
@@ -2365,18 +2427,9 @@ class RocPlayground {
   }
 
   addHeaderButtons(): void {
-    const editorHeader = document.querySelector(".editor-header");
-    if (editorHeader) {
-      // Create or get the button container
-      let buttonContainer = editorHeader.querySelector(
-        ".header-buttons-container",
-      ) as HTMLDivElement;
-      if (!buttonContainer) {
-        buttonContainer = document.createElement("div");
-        buttonContainer.className = "header-buttons-container";
-        editorHeader.appendChild(buttonContainer);
-      }
-
+    // Get the button container
+    let buttonContainer = document.getElementById("headerButtonsContainer") as HTMLDivElement;
+    if (buttonContainer) {
       // Add format button
       let formatButton = buttonContainer.querySelector(
         ".format-button",
