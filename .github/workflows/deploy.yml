@@ -32,6 +32,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Fetch playground.wasm from latest nightly
+        run: |
+          echo "Fetching latest nightly release info..."
+          LATEST_RELEASE=$(curl -s "https://api.github.com/repos/roc-lang/nightlies/releases/latest")
+          TAG_NAME=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "null" ]; then
+            echo "Error: Could not determine latest nightly release tag"
+            exit 1
+          fi
+
+          echo "Latest nightly: $TAG_NAME"
+          DOWNLOAD_URL="https://github.com/roc-lang/nightlies/releases/download/$TAG_NAME/playground.wasm"
+
+          echo "Downloading from $DOWNLOAD_URL..."
+          curl -L --fail -o src/assets/playground.wasm "$DOWNLOAD_URL"
+          ls -la src/assets/playground.wasm
+
       - name: Security Scan
         run: npm audit --audit-level=high
 

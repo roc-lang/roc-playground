@@ -5,6 +5,8 @@
   "source": "src/index.html",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
+    "fetch-wasm": "bash scripts/fetch-wasm.sh",
+    "setup": "npm install && npm run fetch-wasm",
     "dev": "parcel serve src/index.html --port 8000",
     "build": "parcel build src/index.html --public-url ./",
     "clean": "rm -rf dist .parcel-cache",
