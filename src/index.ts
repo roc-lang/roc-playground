@@ -243,6 +243,8 @@ class RocPlayground {
   private boundHandleMouseMove: ((e: MouseEvent) => void) | null = null;
   private boundHandleMouseUp: (() => void) | null = null;
   private formattedCodeEditor: EditorView | null = null;
+  private currentFilename: string = "main.roc";
+  private isLoadingExample: boolean = false;
 
   constructor() {
     this.compileTimeout = null;
@@ -344,6 +346,11 @@ class RocPlayground {
       ? basicTypesExample.code
       : "# Select an example or write Roc code here...";
 
+    // Set the default filename based on the loaded example
+    if (basicTypesExample) {
+      this.currentFilename = basicTypesExample.rocFilename;
+    }
+
     codeMirrorEditor = createFullEditor(editorContainer, {
       content: initialContent,
       theme: theme,
@@ -358,6 +365,11 @@ class RocPlayground {
   }
 
   handleCodeChange(content: string): void {
+    // Skip auto-compile when loading an example (we'll compile explicitly)
+    if (this.isLoadingExample) {
+      return;
+    }
+
     // Auto-compile with debouncing and validation
     if (this.compileTimeout) {
       clearTimeout(this.compileTimeout);
@@ -385,7 +397,7 @@ class RocPlayground {
     }
   }
 
-  async compileCode(code?: string, skipViewUpdate?: boolean): Promise<void> {
+  async compileCode(code?: string, skipViewUpdate?: boolean, filename?: string): Promise<void> {
     if (!wasmInterface) {
       this.showError("WASM module not loaded");
       return;
@@ -400,8 +412,10 @@ class RocPlayground {
         setTimeout(() => reject(new Error("Compilation timeout")), 10000);
       });
 
+      const filenameToUse = filename || this.currentFilename;
       const compilationPromise = wasmInterface.compile(
         code || getDocumentContent(codeMirrorEditor),
+        filenameToUse,
       );
 
       const result = await Promise.race([compilationPromise, timeoutPromise]);
@@ -411,15 +425,16 @@ class RocPlayground {
       if (result.status === "SUCCESS") {
         // Parse diagnostics from the result
         lastDiagnostics = this.parseDiagnostics(result);
+
+        // Store the full result for other views (must be before updateDiagnosticSummary)
+        this.lastCompileResult = result;
+
         this.updateDiagnosticSummary();
 
         // Update editor with diagnostics
         if (codeMirrorEditor) {
           updateDiagnosticsInView(codeMirrorEditor, lastDiagnostics);
         }
-
-        // Store the full result for other views
-        this.lastCompileResult = result;
       } else {
         // Handle error response
         lastDiagnostics = [
@@ -434,14 +449,16 @@ class RocPlayground {
             },
           },
         ];
+
+        // Clear the compile result (must be before updateDiagnosticSummary)
+        this.lastCompileResult = null;
+
         this.updateDiagnosticSummary();
 
         // Update editor with error diagnostic
         if (codeMirrorEditor) {
           updateDiagnosticsInView(codeMirrorEditor, lastDiagnostics);
         }
-
-        this.lastCompileResult = null;
       }
 
       // Show current view (unless we're already updating a view to prevent recursion)
@@ -470,7 +487,7 @@ class RocPlayground {
       exampleItem.setAttribute("tabindex", "0");
       exampleItem.setAttribute("aria-label", `Load ${example.name} example`);
       exampleItem.innerHTML = `
-        <div class="example-filename">${example.filename}</div>
+        <div class="example-filename">${example.name}</div>
       `;
 
       const handleActivation = () => {
@@ -516,11 +533,26 @@ class RocPlayground {
     activeItem?.classList.add("active");
     activeItem?.setAttribute("aria-pressed", "true");
 
-    // Set editor content
+    // Update current filename for compilation
+    this.currentFilename = example.rocFilename;
+
+    // Set flag to prevent handleCodeChange from triggering auto-compile
+    this.isLoadingExample = true;
+
+    // Clear any pending debounced compile
+    if (this.compileTimeout) {
+      clearTimeout(this.compileTimeout);
+      this.compileTimeout = null;
+    }
+
+    // Set editor content (onChange will be skipped due to isLoadingExample flag)
     setDocumentContent(codeMirrorEditor, example.code);
 
-    // Compile the new code
-    await this.compileCode(example.code);
+    // Clear the flag
+    this.isLoadingExample = false;
+
+    // Compile the new code with the example's filename
+    await this.compileCode(example.code, false, example.rocFilename);
   }
 
   setupAutoCompile(): void {
