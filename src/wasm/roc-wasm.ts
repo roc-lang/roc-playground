@@ -8,6 +8,7 @@ import { debugLog } from "../utils/debug";
 interface WasmMessage {
   type: string;
   source?: string;
+  filename?: string;
   identifier?: string;
   line?: number;
   ch?: number;
@@ -66,7 +67,7 @@ interface WasmResponse {
 }
 
 export interface WasmInterface {
-  compile: (code: string) => Promise<WasmResponse>;
+  compile: (code: string, filename: string) => Promise<WasmResponse>;
   tokenize: () => Promise<WasmResponse>;
   parse: () => Promise<WasmResponse>;
   canonicalize: () => Promise<WasmResponse>;
@@ -191,9 +192,9 @@ export async function initializeWasm(): Promise<{
  */
 function createWasmInterface(): WasmInterface {
   return {
-    compile: async (code) => {
+    compile: async (code, filename) => {
       await sendMessageQueued({ type: "RESET" });
-      return sendMessageQueued({ type: "LOAD_SOURCE", source: code });
+      return sendMessageQueued({ type: "LOAD_SOURCE", source: code, filename });
     },
     tokenize: () => sendMessageQueued({ type: "QUERY_TOKENS" }),
     parse: () => sendMessageQueued({ type: "QUERY_AST" }),

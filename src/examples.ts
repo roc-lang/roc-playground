@@ -4,46 +4,58 @@
 export interface Example {
   name: string;
   code: string;
-  filename: string;
+  /** The actual filename sent to the Roc compiler */
+  rocFilename: string;
 }
 
 export const examples: Example[] = [
   {
     name: "Hello World",
-    filename: "hello-world.roc",
-    code: `app [main!] { pf: platform "../basic-cli/platform.roc" }
+    rocFilename: "main.roc",
+    code: `app [main!] { pf: platform "https://github.com/lukewilliamboswell/roc-platform-template-zig/releases/download/0.6/2BfGn4M9uWJNhDVeMghGeXNVDFijMfPsmmVeo6M4QjKX.tar.zst" }
 
 import pf.Stdout
 
-main! = |_| Stdout.line!("Hello, world!")`,
+main! = |_args| {
+    Stdout.line!("Hello, World!")
+    Ok({})
+}`,
   },
   {
     name: "Basic Types",
-    filename: "basic-types.roc",
-    code: `module [name, age, height, is_active, colors, numbers]
+    rocFilename: "Person.roc",
+    code: `Person := [].{
+    name : Str
+    name = "Alice"
 
-name : Str
-name = "Alice"
+    age : I32
+    age = 25
 
-age : I32
-age = 25
+    height : Dec
+    height = 5.8
 
-height : Dec
-height = 5.8
+    is_active : Bool
+    is_active = True
 
-is_active : Bool
-is_active = True
+    colors : List(Str)
+    colors = ["red", "green", "blue"]
 
-colors : List(Str)
-colors = ["red", "green", "blue"]
-
-numbers : List(I32)
-numbers = [1, 2, 3, 4, 5]`,
+    numbers : List(I32)
+    numbers = [1, 2, 3, 4, 5]
+}`,
   },
   {
     name: "Functions",
-    filename: "functions.roc",
-    code: `module [add, multiply, greet, is_even, apply_twice, factorial, Color, color_to_hex]
+    rocFilename: "Color.roc",
+    code: `Color := [Red, Green, Blue].{
+    color_to_hex : Color -> Str
+    color_to_hex = |color|
+        match color {
+            Red => "#FF0000"
+            Green => "#00FF00"
+            Blue => "#0000FF"
+        }
+}
 
 add : I32, I32 -> I32
 add = |a, b| a + b
@@ -61,40 +73,31 @@ apply_twice : (I32 -> I32), I32 -> I32
 apply_twice = |func, x| func(func(x))
 
 factorial : I32 -> I32
-factorial = |n|
-  if n <= 1
-    1
-  else
-    n * factorial(n - 1)
-
-Color : [Red, Green, Blue]
-
-color_to_hex : Color -> Str
-color_to_hex = |color|
-  match color {
-      Red => "#FF0000"
-      Green => "#00FF00"
-      Blue => "#0000FF"
-  }`,
+factorial = |n| {
+    if n <= 1
+        1
+    else
+        n * factorial(n - 1)
+}`,
   },
   {
     name: "Pattern Matching",
-    filename: "pattern-matching.roc",
-    code: `module [Shape, calculate_area, process_result, analyze_list, process_user, describe_day]
-
-Shape : [Circle(Dec), Rectangle(Dec, Dec), Triangle(Dec, Dec)]
-
-calculate_area : Shape -> Dec
-calculate_area = |shape|
-    match shape {
-        Circle(radius) => 3.14159 * radius * radius
-        Rectangle(width, height) => width * height
-        Triangle(base, height) => 0.5 * base * height
+    rocFilename: "Shape.roc",
+    code: `Shape := [Circle(Dec), Rectangle(Dec, Dec), Triangle(Dec, Dec)].{
+    calculate_area : Shape -> Dec
+    calculate_area = |shape| {
+        match shape {
+            Circle(radius) => 3.14159 * radius * radius
+            Rectangle(width, height) => width * height
+            Triangle(base, height) => 0.5 * base * height
+        }
     }
+}
 
-process_result : Result(Str, Str) -> Str
-process_result = |result|
-    match result {
+
+process_try : Try(Str, Str) -> Str
+process_try = |try|
+    match try {
         Ok(value) => "Success: \${value}"
         Err(error) => "Error: \${error}"
     }
@@ -103,45 +106,25 @@ analyze_list : List(I32) -> Str
 analyze_list = |list|
     match list {
         [] => "Empty list"
-        [single] => "Single element: \${single.toStr()}"
-        [first, second] => "Two elements: \${first.toStr()} and \${second.toStr()}"
-        [first, .. as rest] => "First: \${first.toStr()}, rest has \${rest.len().toStr()} elements"
-    }
-
-User : {
-  name : Str,
-  age : I32,
-  is_active : Bool,
-}
-
-process_user : User -> Str
-process_user = |user|
-    match user {
-        { name: "admin", age, is_active: Bool.True } => "Admin \${name} (age \${age.toStr()}) is active"
-        { name, age, is_active: Bool.False } => "User \${name} is inactive"
-        { name, age } if age >= 18 => "Adult user: \${name}"
-        { name, age } => "Minor user: \${name} (age \${age.toStr()})"
-    }
-
-DayOfWeek : [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
-
-describe_day : DayOfWeek, Bool -> Str
-describe_day = |day, isHoliday|
-    match (day, isHoliday) {
-        (Saturday, _) | (Sunday, _) => "Weekend!"
-        (_, Bool.True) => "Holiday!"
-        (Monday, Bool.False) => "Monday blues"
-        (Friday, Bool.False) => "TGIF!"
-        (_, Bool.False) => "Regular weekday"
+        [single] => "Single element: \${I32.to_str(single)}"
+        [first, second] => "Two elements: \${I32.to_str(first)} and \${I32.to_str(second)}"
+        [first, .. as rest] => "First: \${I32.to_str(first)}, rest has \${U64.to_str(rest.len())} elements"
     }`,
   },
   {
     name: "Records",
-    filename: "records.roc",
-    code: `module [Person, Address, create_person, get_full_name, update_age, move_to_new_address, process_employee, Stats, update_stats]
+    rocFilename: "Records.roc",
+    code: `Records := [].{}
+    
+Employee : {
+    personal : Person,
+    address : Address,
+    salary : Dec,
+    department : Str
+}
 
 Person : { name : Str, age : I32, email : Str }
-Address : { street : Str, city : Str, zipCode : Str }
+Address : { street : Str, city : Str, zip_code : Str }
 
 create_person : Str, I32, Str -> Person
 create_person = |name, age, email| { name, age, email }
@@ -150,22 +133,15 @@ get_full_name : Person -> Str
 get_full_name = |person| "\${person.name} <\${person.email}>"
 
 update_age : Person, I32 -> Person
-update_age = |person, newAge| { ..person, age: newAge }
-
-Employee : {
-    personal : Person,
-    address : Address,
-    salary : Dec,
-    department : Str
-}
+update_age = |person, new_age| { ..person, age: new_age }
 
 move_to_new_address : Employee, Address -> Employee
-move_to_new_address = |employee, newAddress|
-    { ..employee, address: newAddress }
+move_to_new_address = |employee, new_address|
+    { ..employee, address: new_address }
 
 process_employee : Employee -> Str
 process_employee = |{ personal: { name, age }, department, salary }|
-    "\${name} (\${age.toStr()}) works in \${department} earning $\${salary.toStr()}"
+    "\${name} (\${I32.to_str(age)}) works in \${department} earning \${Dec.to_str(salary)}"
 
 Stats : { wins : I32, losses : I32, draws : I32 }
 
@@ -177,24 +153,24 @@ update_stats = |stats, result|
         Draw => { ..stats, draws: stats.draws + 1 }
     }
 
-playerSummary : Stats -> { total : I32, winRate : Dec }
-playerSummary = |{wins, losses, draws}| {
+player_summary : Stats -> { total : I32, win_rate : Dec }
+player_summary = |{wins, losses, draws}| {
     total = wins + losses + draws
-    winRate = if total > 0 (wins.toFrac() / total.toFrac()) else 0.0
+    win_rate = if total > 0 (I32.to_dec(wins) / I32.to_dec(total)) else 0.0
 
-    { total, winRate }
+    { total, win_rate }
 }
 
-examplePerson : Person
-examplePerson = create_person("Alice Johnson", 28, "alice@example.com")
+example_person : Person
+example_person = create_person("Alice Johnson", 28, "alice@example.com")
 
-exampleAddress : Address
-exampleAddress = { street: "123 Main St", city: "Springfield", zipCode: "12345" }
+example_address : Address
+example_address = { street: "123 Main St", city: "Springfield", zip_code: "12345" }
 
-exampleEmployee : Employee
-exampleEmployee = {
-    personal: examplePerson,
-    address: exampleAddress,
+example_employee : Employee
+example_employee = {
+    personal: example_person,
+    address: example_address,
     salary: 75000.0,
     department: "Engineering",
 }`,
