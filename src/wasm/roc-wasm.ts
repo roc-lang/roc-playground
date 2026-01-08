@@ -67,7 +67,7 @@ interface WasmResponse {
 }
 
 export interface WasmInterface {
-  compile: (code: string, filename?: string) => Promise<WasmResponse>;
+  compile: (code: string, filename: string) => Promise<WasmResponse>;
   tokenize: () => Promise<WasmResponse>;
   parse: () => Promise<WasmResponse>;
   canonicalize: () => Promise<WasmResponse>;
