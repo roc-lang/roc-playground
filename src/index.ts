@@ -1441,14 +1441,8 @@ class RocPlayground {
 
     const outputContent = document.getElementById("outputContent");
 
-    if (lastDiagnostics.length === 0) {
-      if (outputContent) {
-        outputContent.innerHTML = `<div class="success-message">No problems found!</div>`;
-      }
-      return;
-    }
-
-    // Use pre-formatted HTML from WASM if available
+    // Use pre-formatted HTML from WASM if available (check this first since
+    // diagnostics.list may be empty even when diagnostics.html has content)
     if (this.lastCompileResult?.diagnostics?.html) {
       if (outputContent) {
         outputContent.innerHTML = this.lastCompileResult.diagnostics.html;
@@ -1456,24 +1450,32 @@ class RocPlayground {
       return;
     }
 
-    // Fallback to simple diagnostic display
-    let html = "";
-    lastDiagnostics.forEach((diagnostic) => {
-      const severity = diagnostic.severity || "error";
-      html += `
-        <div class="diagnostic ${severity}">
-          <div class="diagnostic-header">
-            <span class="diagnostic-severity">${severity.toUpperCase()}</span>
-            <span class="diagnostic-location">Line ${diagnostic.region.start_line}:${diagnostic.region.start_column}</span>
+    // Fallback to simple diagnostic display from parsed list
+    if (lastDiagnostics.length > 0) {
+      let html = "";
+      lastDiagnostics.forEach((diagnostic) => {
+        const severity = diagnostic.severity || "error";
+        html += `
+          <div class="diagnostic ${severity}">
+            <div class="diagnostic-header">
+              <span class="diagnostic-severity">${severity.toUpperCase()}</span>
+              <span class="diagnostic-location">Line ${diagnostic.region.start_line}:${diagnostic.region.start_column}</span>
+            </div>
+            <div class="diagnostic-message">${this.escapeHtml(diagnostic.message || "")}</div>
+            ${diagnostic.code ? `<div class="diagnostic-code">${this.escapeHtml(diagnostic.code)}</div>` : ""}
           </div>
-          <div class="diagnostic-message">${this.escapeHtml(diagnostic.message || "")}</div>
-          ${diagnostic.code ? `<div class="diagnostic-code">${this.escapeHtml(diagnostic.code)}</div>` : ""}
-        </div>
-      `;
-    });
+        `;
+      });
 
+      if (outputContent) {
+        outputContent.innerHTML = html;
+      }
+      return;
+    }
+
+    // No diagnostics available
     if (outputContent) {
-      outputContent.innerHTML = html;
+      outputContent.innerHTML = `<div class="success-message">No problems found!</div>`;
     }
   }
 
