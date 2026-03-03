@@ -129,7 +129,7 @@ const isIntent = {
 // Global state variables
 let wasmInterface: WasmInterface | null = null;
 let currentState: "INIT" | "READY" | "LOADED" | "REPL_ACTIVE" = "INIT";
-let currentView: "PROBLEMS" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" | "TESTS" = "PROBLEMS";
+let currentView: "PROBLEMS" | "OUTPUT" | "TOKENS" | "AST" | "CIR" | "TYPES" | "FORMATTED" | "TESTS" = "PROBLEMS";
 let lastDiagnostics: Diagnostic[] = [];
 let activeExample: number | null = null;
 let lastCompileTime: number | null = null;
@@ -219,6 +219,8 @@ async function executeIntent(
   if (isIntent.defaultEditor(intent)) {
     updateAppState({ mode: { type: AppModeType.EDITOR } });
     await playground.ensureEditorMode();
+    // Compile the default content so diagnostics and isRunnable are available immediately
+    await playground.compileCode();
   } else if (isIntent.loadUrlContent(intent)) {
     updateAppState({ mode: { type: AppModeType.EDITOR } });
     await playground.ensureEditorMode();
@@ -245,6 +247,7 @@ class RocPlayground {
   private formattedCodeEditor: EditorView | null = null;
   private currentFilename: string = "main.roc";
   private isLoadingExample: boolean = false;
+  private isRunnable: boolean = false;
 
   constructor() {
     this.compileTimeout = null;
@@ -340,15 +343,15 @@ class RocPlayground {
     const themeAttr = document.documentElement.getAttribute("data-theme");
     const theme: "light" | "dark" = themeAttr === "dark" ? "dark" : "light";
 
-    // Load Basic Types example as default content
-    const basicTypesExample = examples.find((ex) => ex.name === "Basic Types");
-    const initialContent = basicTypesExample
-      ? basicTypesExample.code
+    // Load Hello World example as default content
+    const defaultExample = examples.find((ex) => ex.name === "Hello World");
+    const initialContent = defaultExample
+      ? defaultExample.code
       : "# Select an example or write Roc code here...";
 
     // Set the default filename based on the loaded example
-    if (basicTypesExample) {
-      this.currentFilename = basicTypesExample.rocFilename;
+    if (defaultExample) {
+      this.currentFilename = defaultExample.rocFilename;
     }
 
     codeMirrorEditor = createFullEditor(editorContainer, {
@@ -429,6 +432,9 @@ class RocPlayground {
         // Store the full result for other views (must be before updateDiagnosticSummary)
         this.lastCompileResult = result;
 
+        // Check if the program is runnable (has main!)
+        this.isRunnable = result.is_runnable === true;
+
         this.updateDiagnosticSummary();
 
         // Update editor with diagnostics
@@ -504,6 +510,16 @@ class RocPlayground {
 
       examplesList?.appendChild(exampleItem);
     });
+
+    // Highlight the first example (Hello World) as active on initial load
+    const defaultIndex = examples.findIndex((ex) => ex.name === "Hello World");
+    if (defaultIndex >= 0) {
+      activeExample = defaultIndex;
+      const exampleItems = document.querySelectorAll(".example-item");
+      const activeItem = exampleItems[defaultIndex] as HTMLElement;
+      activeItem?.classList.add("active");
+      activeItem?.setAttribute("aria-pressed", "true");
+    }
   }
 
   async loadExample(index: number): Promise<void> {
@@ -1413,6 +1429,9 @@ class RocPlayground {
       case "PROBLEMS":
         this.showDiagnostics();
         break;
+      case "OUTPUT":
+        this.showOutput();
+        break;
       case "TOKENS":
         this.showTokens();
         break;
@@ -1721,6 +1740,65 @@ class RocPlayground {
     }
   }
 
+  async showOutput(): Promise<void> {
+    currentView = "OUTPUT";
+    this.updateStageButtons();
+    this.cleanupFormattedCodeEditor();
+
+    const outputContent = document.getElementById("outputContent");
+    if (!outputContent) return;
+
+    if (!this.isRunnable) {
+      outputContent.innerHTML = `<div class="output-not-runnable">This program doesn't have a <code>main!</code> function to run.</div>`;
+      return;
+    }
+
+    // Build output panel with run button and output area
+    outputContent.innerHTML = `
+      <div class="output-panel">
+        <div class="output-toolbar">
+          <button class="run-button" id="runButton">Run</button>
+        </div>
+        <pre class="output-display" id="outputDisplay"></pre>
+      </div>
+    `;
+
+    const runButton = document.getElementById("runButton") as HTMLButtonElement;
+    runButton?.addEventListener("click", async () => {
+      if (!wasmInterface) return;
+
+      const outputDisplay = document.getElementById("outputDisplay");
+      runButton.disabled = true;
+      runButton.textContent = "Running...";
+
+      try {
+        // Ensure code is compiled
+        const currentCode = getDocumentContent(codeMirrorEditor);
+        await this.compileCode(currentCode, true);
+
+        const result = await wasmInterface.runMain();
+
+        if (outputDisplay) {
+          if (result.status === "SUCCESS") {
+            outputDisplay.textContent = result.data || "(no output)";
+          } else {
+            outputDisplay.textContent = `Error: ${result.message || "Execution failed"}`;
+            outputDisplay.classList.add("output-error");
+          }
+        }
+      } catch (error) {
+        if (outputDisplay) {
+          const message = error instanceof Error ? error.message : String(error);
+          outputDisplay.textContent = `Error: ${message}`;
+          outputDisplay.classList.add("output-error");
+        }
+      } finally {
+        runButton.disabled = false;
+        runButton.textContent = "Run";
+      }
+    });
+  }
+
   private cleanupFormattedCodeEditor(): void {
     if (this.formattedCodeEditor) {
       this.formattedCodeEditor.destroy();
@@ -1852,6 +1930,7 @@ class RocPlayground {
   getButtonId(view: string): string {
     const mapping: Record<string, string> = {
       PROBLEMS: "diagnosticsBtn",
+      OUTPUT: "outputBtn",
       TOKENS: "tokensBtn",
       AST: "parseBtn",
       CIR: "canBtn",
@@ -2193,6 +2272,8 @@ class RocPlayground {
   }
 
   setStatus(message: string): void {
+    // Don't overwrite the output panel when in OUTPUT view
+    if (currentView === "OUTPUT") return;
     const outputContent = document.getElementById("outputContent");
     if (outputContent) {
       outputContent.innerHTML = `<div class="status-text">${message}</div>`;
@@ -2554,6 +2635,9 @@ class RocPlayground {
     switch (tabId) {
       case 'diagnosticsBtn':
         this.showDiagnostics();
+        break;
+      case 'outputBtn':
+        this.showOutput();
         break;
       case 'tokensBtn':
         this.showTokens();

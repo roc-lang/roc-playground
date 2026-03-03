@@ -55,6 +55,7 @@ interface WasmResponse {
   status: "SUCCESS" | "ERROR" | "INVALID_STATE" | "INVALID_MESSAGE";
   message?: string;
   data?: string;
+  is_runnable?: boolean;
   diagnostics?: Diagnostics;
   hover_info?: {
     name: string;
@@ -79,6 +80,7 @@ export interface WasmInterface {
     ch: number,
   ) => Promise<WasmResponse | null>;
   evaluateTests: () => Promise<WasmResponse>;
+  runMain: () => Promise<WasmResponse>;
   isReady: () => boolean;
   getMemoryUsage: () => number;
   sendMessage: (message: WasmMessage) => Promise<WasmResponse>;
@@ -202,6 +204,7 @@ function createWasmInterface(): WasmInterface {
     getTypes: () => sendMessageQueued({ type: "QUERY_TYPES" }),
     formatCode: () => sendMessageQueued({ type: "QUERY_FORMATTED" }),
     evaluateTests: () => sendMessageQueued({ type: "EVALUATE_TESTS" }),
+    runMain: () => sendMessageQueued({ type: "RUN_MAIN" }),
     getHoverInfo: async (identifier, line, ch) => {
       try {
         // The WASM module expects a 1-based column, but editor tooling
