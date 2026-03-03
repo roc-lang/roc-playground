@@ -569,6 +569,71 @@ body {
     border-color: var(--border-subtle);
 }
 
+.run-button {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-out);
+    min-width: var(--size-70);
+    text-align: center;
+}
+
+.run-button:hover {
+    background-color: var(--green);
+    color: var(--bg-primary);
+    border-color: var(--green);
+}
+
+.run-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--bg-tertiary);
+    color: var(--text-tertiary);
+    border-color: var(--border-subtle);
+}
+
+.output-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.output-toolbar {
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.output-display {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    white-space: pre-wrap;
+    padding: var(--space-4);
+    margin: 0;
+    flex: 1;
+    overflow: auto;
+    color: var(--text-primary);
+}
+
+.output-display.output-error {
+    color: var(--color-error);
+}
+
+.output-not-runnable {
+    padding: var(--space-4);
+    color: var(--text-secondary);
+}
+
+.output-not-runnable code {
+    font-family: var(--font-mono);
+    background-color: var(--bg-tertiary);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
 .main-container {
     display: flex;
     flex: 1;
