@@ -7,7 +7,7 @@ There are many known bugs and issues with the Roc compiler. If you would like to
 
 ## Setup
 
-The playground requires `playground.wasm` which is downloaded from the latest [Roc nightly release](https://github.com/roc-lang/nightlies/releases).
+The playground builds `playground.wasm` and `echo.wasm` from the exact [roc-lang/roc](https://github.com/roc-lang/roc) commit in `roc-revision`. Install [Node.js 24 LTS](https://nodejs.org/), Git and [Zig 0.17.0](https://ziglang.org/download/) and add them to your PATH before setup. Local setup and CI use the same revision and ReleaseSmall build.
 
 ### Quick Start
 
@@ -15,12 +15,12 @@ The playground requires `playground.wasm` which is downloaded from the latest [R
 npm run setup
 ```
 
-This installs dependencies and downloads the latest `playground.wasm`.
+This installs dependencies and builds `playground.wasm` and `echo.wasm`. Roc source and build files are cached in `.cache/roc/`.
 
 ### Manual Setup
 
 ```bash
-npm install
+npm ci
 npm run fetch-wasm
 ```
 
@@ -30,10 +30,25 @@ npm run fetch-wasm
 npm run dev
 ```
 
-### Updating playground.wasm
+### Updating Roc
 
-To update to the latest nightly:
+To upgrade Roc, put the full upstream Git SHA in `roc-revision`, then rebuild:
 
 ```bash
 npm run fetch-wasm
 ```
+
+The Output tab runs headerless programs containing `main!` through Roc’s echo platform and displays `echo!` output and compiler diagnostics. Programs are limited to 64 KiB by the echo API.
+
+### Verification
+
+After setup, run the same checks as CI:
+
+```bash
+npm audit --audit-level=high
+npm run typecheck
+npm test
+npm run build
+```
+
+The tests load both WASM artifacts, compile every bundled example, exercise all compiler views and hover, evaluate a REPL expression, and check echo output, diagnostics, and recovery after execution errors.

@@ -32,20 +32,15 @@
     "removeComments": false,
     "noEmit": true,
     "importHelpers": true,
-    "downlevelIteration": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["src/**/*", "src/**/*.ts", "src/**/*.tsx", "types.d.ts"],
-  "exclude": ["node_modules", "dist", ".parcel-cache"],
-  "ts-node": {
-    "esm": true
-  }
+  "include": ["src/**/*", "types.d.ts"],
+  "exclude": ["node_modules", "dist", ".parcel-cache"]
 }

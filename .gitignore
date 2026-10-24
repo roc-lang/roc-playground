@@ -4,5 +4,9 @@ dist/
 
 .DS_Store
 
-# Downloaded from nightly releases
+# Built from the pinned Roc revision
 src/assets/playground.wasm
+src/assets/echo.wasm
+
+# Roc source and build cache
+.cache/

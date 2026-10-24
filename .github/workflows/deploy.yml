@@ -22,34 +22,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "18"
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch playground.wasm from latest nightly
-        run: |
-          echo "Fetching latest nightly release info..."
-          LATEST_RELEASE=$(curl -s "https://api.github.com/repos/roc-lang/nightlies/releases/latest")
-          TAG_NAME=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.0
 
-          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "null" ]; then
-            echo "Error: Could not determine latest nightly release tag"
-            exit 1
-          fi
-
-          echo "Latest nightly: $TAG_NAME"
-          DOWNLOAD_URL="https://github.com/roc-lang/nightlies/releases/download/$TAG_NAME/playground.wasm"
-
-          echo "Downloading from $DOWNLOAD_URL..."
-          curl -L --fail -o src/assets/playground.wasm "$DOWNLOAD_URL"
-          ls -la src/assets/playground.wasm
+      - name: Build playground and echo WASM from pinned Roc commit
+        run: npm run fetch-wasm
 
       - name: Security Scan
         run: npm audit --audit-level=high
@@ -57,12 +47,15 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Test WASM APIs and examples
+        run: npm test
+
       - name: Build
         run: npm run build
 
       - name: Upload build artifacts
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
@@ -78,4 +71,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
