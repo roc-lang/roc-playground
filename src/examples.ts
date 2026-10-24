@@ -136,7 +136,7 @@ move_to_new_address = |employee, new_address|
     { ..employee, address: new_address }
 
 process_employee : Employee -> Str
-process_employee = |{ personal: { name, age }, department, salary }|
+process_employee = |{ personal: { name, age, .. }, department, salary, .. }|
     "\${name} (\${I32.to_str(age)}) works in \${department} earning \${Dec.to_str(salary)}"
 
 Stats : { wins : I32, losses : I32, draws : I32 }

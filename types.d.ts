@@ -20,17 +20,15 @@ declare module "url:*" {
   export default url;
 }
 
-// Window interface extensions for global playground functions
-declare global {
-  interface Window {
-    showDiagnostics: () => void;
-    showTokens: () => void;
-    showParseAst: () => void;
-    showCanCir: () => void;
-    showTypes: () => void;
-    toggleVerboseLogging: () => void;
-  }
-}
+// Parcel handles CSS side-effect imports.
+declare module "*.css" {}
 
-// Ensure this file is treated as a module
-export {};
+// Window interface extensions for global playground functions.
+interface Window {
+  showDiagnostics: () => void;
+  showTokens: () => void;
+  showParseAst: () => void;
+  showCanCir: () => void;
+  showTypes: () => void;
+  toggleVerboseLogging: () => void;
+}

@@ -140,10 +140,11 @@ export async function initializeWasm(): Promise<{
 
     const requiredExports = [
       "init",
-      "processAndRespond",
+      "processMessage",
+      "allocateResponseBuffer",
+      "freeResponseBuffer",
       "allocateMessageBuffer",
       "freeMessageBuffer",
-      "freeWasmString",
     ];
 
     for (const exportName of requiredExports) {
@@ -158,9 +159,6 @@ export async function initializeWasm(): Promise<{
     wasmModule.init();
     debugLog("WASM module 'init' called successfully");
 
-    // Since this is the first call, it's okay if it fails with OOM,
-    // as subsequent calls will use the more stable processMessage.
-    // We use it here just to get the version string easily.
     const initResponse = await sendMessageQueued({ type: "INIT" });
     let compilerVersion: string | undefined;
 
@@ -293,55 +291,36 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     new Uint8Array(wasmMemory.buffer).set(messageBytes, messagePtr);
     debugLog(`[WASM Debug] Copied message to WASM memory`);
 
-    // Call processAndRespond (matching integration test API)
-    debugLog(`[WASM Debug] Calling processAndRespond(${messagePtr}, ${messageBytes.length})`);
-    responsePtr = wasmModule.processAndRespond(messagePtr, messageBytes.length);
-    debugLog(`[WASM Debug] processAndRespond returned: ${responsePtr}`);
-
-    // Free message buffer immediately after use
+    // The convenience API has a fixed 128 KiB response buffer, which is too
+    // small for CIR HTML from the bundled Records example. Own a 4 MiB buffer.
+    const responseCapacity = 4 * 1024 * 1024;
+    responsePtr = wasmModule.allocateResponseBuffer(responseCapacity);
+    if (!responsePtr) throw new Error("Failed to allocate WASM response buffer");
+    const status = wasmModule.processMessage(
+      messagePtr, messageBytes.length, responsePtr, responseCapacity,
+    );
     wasmModule.freeMessageBuffer();
     messagePtr = null;
-
-    if (!responsePtr || responsePtr === 0) {
-      throw new Error("WASM processAndRespond returned null, indicating an internal error");
+    if (status !== 0) {
+      throw new Error(`WASM processMessage failed with error code ${status}`);
     }
 
-    // Read the null-terminated response string from WASM memory
-    const responseMemory = new Uint8Array(wasmMemory.buffer);
-    let responseLength = 0;
-
-    // Find null terminator
-    for (let i = responsePtr; i < wasmMemory.buffer.byteLength; i++) {
-      if (responseMemory[i] === 0) {
-        responseLength = i - responsePtr;
-        break;
-      }
+    // processMessage writes a little-endian u32 length followed by JSON bytes.
+    // Recreate views after processing, which can grow the WASM memory.
+    const responseLength = new DataView(wasmMemory.buffer).getUint32(responsePtr, true);
+    if (responseLength === 0 || responseLength > responseCapacity - 4) {
+      throw new Error("WASM returned an invalid response length");
     }
-
-    if (responseLength === 0) {
-      throw new Error("WASM returned response string without a null terminator");
-    }
-
-    const responseBytes = responseMemory.slice(responsePtr, responsePtr + responseLength);
-    const responseStr = new TextDecoder().decode(responseBytes);
-
-    debugLog(`[WASM Debug] Response string: ${responseStr}`);
-
-    // Parse JSON response
-    const responseObject = JSON.parse(responseStr) as WasmResponse;
-    debugLog(`[WASM Debug] Parsed response object:`, responseObject);
-
-    // Free the WASM-allocated response string
-    wasmModule.freeWasmString(responsePtr);
+    const responseBytes = new Uint8Array(wasmMemory.buffer, responsePtr + 4, responseLength);
+    const responseObject = JSON.parse(new TextDecoder().decode(responseBytes)) as WasmResponse;
+    wasmModule.freeResponseBuffer();
     responsePtr = null;
 
     // Check debug log (optional, for debugging)
     try {
       const wasmDebugLog = wasmModule?.getDebugLogBuffer ? readNullTerminatedString(wasmModule.getDebugLogBuffer()) : "";
       if (wasmDebugLog) {
-        console.log("%c--- WASM Internal Debug Log (Success) ---", "color: #00a; font-weight: bold;");
-        console.log(wasmDebugLog);
-        console.log("%c-----------------------------------------", "color: #00a; font-weight: bold;");
+        debugLog("WASM internal log:", wasmDebugLog);
       }
     } catch (logError) {
       console.error("Failed to retrieve WASM debug log on success:", logError);
@@ -385,9 +364,9 @@ async function sendMessageToWasm(message: WasmMessage): Promise<WasmResponse> {
     }
     if (responsePtr !== null) {
       try {
-        wasmModule.freeWasmString(responsePtr);
+        wasmModule.freeResponseBuffer();
       } catch (e) {
-        console.warn("Failed to free response string:", e);
+        console.warn("Failed to free response buffer:", e);
       }
     }
   }
