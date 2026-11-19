@@ -9,7 +9,7 @@ if [[ ! "$ROC_REVISION" =~ ^[0-9a-f]{40}$ ]]; then
     exit 1
 fi
 
-command -v zig >/dev/null || { echo "Error: Install Zig 0.17.0 and add it to PATH" >&2; exit 1; }
+command -v zig >/dev/null || { echo "Error: Install Zig 0.17.1 and add it to PATH" >&2; exit 1; }
 SOURCE_DIR="$PROJECT_DIR/.cache/roc/$ROC_REVISION"
 mkdir -p "$SOURCE_DIR"
 if [ ! -d "$SOURCE_DIR/.git" ]; then

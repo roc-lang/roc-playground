@@ -7,7 +7,7 @@ There are many known bugs and issues with the Roc compiler. If you would like to
 
 ## Setup
 
-The playground builds `playground.wasm` and `echo.wasm` from the exact [roc-lang/roc](https://github.com/roc-lang/roc) commit in `roc-revision`. Install [Node.js 24 LTS](https://nodejs.org/), Git and [Zig 0.17.0](https://ziglang.org/download/) and add them to your PATH before setup. Local setup and CI use the same revision and ReleaseSmall build.
+The playground builds `playground.wasm` and `echo.wasm` from the exact [roc-lang/roc](https://github.com/roc-lang/roc) commit in `roc-revision`. Install [Node.js 24 LTS](https://nodejs.org/), Git and [Zig 0.17.1](https://ziglang.org/download/) and add them to your PATH before setup. Local setup and CI use the same revision and ReleaseSmall build.
 
 ### Quick Start
 
