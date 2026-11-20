@@ -2,7 +2,7 @@
 
 The playground uses two independent modules built from the commit in
 [`roc-revision`](roc-revision). Run `npm run fetch-wasm` to build both with
-Zig 0.17.0 in ReleaseSmall mode. `npm test` exercises the actual artifacts,
+Zig 0.17.1 in ReleaseSmall mode. `npm test` exercises the actual artifacts,
 every bundled example, the REPL protocol, and echo execution.
 
 Upstream implementations:
